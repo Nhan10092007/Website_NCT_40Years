@@ -1,0 +1,21 @@
+# Thư viện cài từ npm (nặng, chạy npm install là có lại)
+node_modules
+
+# Biến môi trường (chứa mật khẩu, khóa bí mật)
+.env
+.env.*
+!.env.example
+
+# File build
+dist
+build
+
+# Log
+*.log
+npm-debug.log*
+
+# Hệ điều hành / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
