@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import { env } from './config/env.js';
 import { query } from './config/db.js';
 import { errorHandler } from './middlewares/errorHandler.js';
+import locationsRoutes from './modules/locations/locations.routes.js';
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.use(helmet());
 app.use(cors({ origin: env.clientUrl }));
 app.use(morgan('dev'));
 app.use(express.json());
+app.use('/api/locations', locationsRoutes);
 
 app.get('/health', async (req, res, next) => {
   try {
