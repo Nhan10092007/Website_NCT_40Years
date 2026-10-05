@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   display_name  TEXT NOT NULL,
   avatar_url    TEXT,
-  role          TEXT NOT NULL DEFAULT 'student'
+  role          TEXT NOT NULL DEFAULT 'Học sinh'
                 CHECK (role IN ('Học sinh', 'Giáo viên')),
   cohort        TEXT,
   class_name    TEXT,
@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS location_links (
   to_location_id   INT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
   yaw              DOUBLE PRECISION NOT NULL,
   pitch            DOUBLE PRECISION NOT NULL,
+  CHECK (from_location_id <> to_location_id),
   UNIQUE (from_location_id, to_location_id)
 );
 
