@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name  TEXT NOT NULL,
   avatar_url    TEXT,
   role          TEXT NOT NULL DEFAULT 'student'
-                CHECK (role IN ('student', 'alumni', 'teacher')),
+                CHECK (role IN ('Học sinh', 'Giáo viên')),
   cohort        TEXT,
   class_name    TEXT,
   current_city  TEXT,
