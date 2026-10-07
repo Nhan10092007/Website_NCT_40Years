@@ -37,6 +37,7 @@ export function optionalAuth(req, res, next) {
   next();
 }
 
+// Phải đặt SAU requireAuth
 export function requireAdmin(req, res, next) {
   if (!req.user?.isAdmin) {
     return next(new AppError('Bạn không có quyền thực hiện thao tác này', 403));
