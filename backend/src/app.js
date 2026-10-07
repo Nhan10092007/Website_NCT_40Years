@@ -4,8 +4,10 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env.js';
 import { query } from './config/db.js';
-import { errorHandler } from './middlewares/errorHandler.js';
 import locationsRoutes from './modules/locations/locations.routes.js';
+import authRoutes from './modules/auth/auth.routes.js';
+import { errorHandler } from './middlewares/errorHandler.js';
+import usersRoutes from './modules/users/users.routes.js';
 
 const app = express();
 
@@ -14,6 +16,8 @@ app.use(cors({ origin: env.clientUrl }));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use('/api/locations', locationsRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
 
 app.get('/health', async (req, res, next) => {
   try {
@@ -23,9 +27,6 @@ app.get('/health', async (req, res, next) => {
     next(err);
   }
 });
-
-// Gắn các module vào đây, ví dụ:
-// app.use('/auth', authRoutes);
 
 app.use(errorHandler);
 
