@@ -16,12 +16,15 @@ export function validate(schema, source = 'body') {
     if (source === 'body') {
       req.body = result.data;
     } else {
-      // Trong Express 5, req.query và req.params có thể có getter, dùng Object.assign
-      try {
-        Object.assign(req[source], result.data);
-      } catch {
-        // Fallback nếu object bị frozen
-        req[`validated_${source}`] = result.data;
+      // Dữ liệu đã làm sạch (ví dụ đã đổi chuỗi "5" thành số 5) luôn nằm ở
+      // req.validated_query hoặc req.validated_params.
+      // Không gán đè vào req.query vì từ Express 5, req.query là getter
+      // tạo object mới mỗi lần đọc nên giá trị gán sẽ bị mất.
+      req[`validated_${source}`] = result.data;
+
+      // req.params là object thường nên gán thêm được, giữ để code cũ vẫn chạy
+      if (source === 'params') {
+        Object.assign(req.params, result.data);
       }
     }
     next();
