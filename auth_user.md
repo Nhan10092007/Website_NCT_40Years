@@ -419,3 +419,90 @@ npm i bcrypt jsonwebtoken zod express-rate-limit multer
 - [ ] 6 file trong `middlewares/`.
 - [ ] `app.js`: `express.json()` trước route, đủ `/api/auth` và `/api/users`, `errorHandler` cuối cùng, dấu phẩy đúng ở `app.use('/api/auth', authRoutes)`.
 - [ ] Mọi `import` file nội bộ đều có đuôi `.js`.
+
+# Module Users
+
+Module quản lý **hồ sơ người dùng** của website kỷ niệm 40 năm trường. Module này tách khỏi `auth`:
+
+- **auth**: xác thực (đăng ký, đăng nhập, cấp token JWT).
+- **users**: thông tin của người dùng trong cộng đồng trường (tên hiển thị, niên khóa, lớp, nơi ở, công việc, ảnh đại diện).
+
+Vị trí: `backend/src/modules/users/`
+
+## Cấu trúc file
+
+| File | Công dụng |
+| --- | --- |
+| `users.routes.js` | Khai báo đường dẫn, gắn middleware (`requireAuth`, `validate`) và nối với controller. |
+| `users.controller.js` | Nhận request, gọi service, trả JSON. Lấy `id` và `role` từ `req.user` (do `requireAuth` gắn từ token) rồi truyền xuống service. Lỗi được chuyển cho `errorHandler` bằng `next(err)`. |
+| `users.service.js` | Chứa logic truy vấn PostgreSQL (lấy và cập nhật hồ sơ) và kiểm tra quy tắc theo vai trò. |
+| `users.schema.js` | Schema zod kiểm tra dữ liệu gửi lên khi sửa hồ sơ. |
+
+Route được đăng ký trong `app.js`:
+
+```js
+app.use('/api/users', usersRoutes);
+```
+
+## API hiện có
+
+Tất cả endpoint đều yêu cầu đăng nhập: header `Authorization: Bearer <token>`.
+
+### `GET /api/users/me`
+
+Lấy hồ sơ của chính người đang đăng nhập.
+
+- Thành công (200): `{ "user": { ... } }`
+- Các trường trả về: `id`, `email`, `display_name`, `role`, `cohort`, `class_name`, `current_city`, `job`, `avatar_url`, `is_admin`, `created_at`
+- Lỗi: 401 nếu chưa đăng nhập hoặc token hết hạn; 404 nếu tài khoản không còn tồn tại.
+
+### `PATCH /api/users/me`
+
+Sửa hồ sơ của chính mình. Chỉ gửi các trường muốn đổi; trường không gửi thì giữ nguyên.
+
+| Trường | Quy tắc |
+| --- | --- |
+| `displayName` | Chuỗi, bỏ khoảng trắng đầu/cuối, không được rỗng. Không xóa được. |
+| `cohort` | Phải nằm trong danh sách niên khóa hợp lệ (`isValidCohort` trong `utils/cohorts.js`). Mỗi khóa 3 năm, bắt đầu từ 1986. Không xóa được. |
+| `className` | Chuỗi, không được rỗng. Không xóa được. |
+| `currentCity` | Chuỗi. Gửi `null` hoặc chuỗi rỗng để xóa (lưu `NULL`). |
+| `job` | Chuỗi. Gửi `null` hoặc chuỗi rỗng để xóa (lưu `NULL`). |
+
+Quy tắc theo vai trò:
+
+- **Giáo viên** (`teacher`) không có niên khóa và lớp. Nếu gửi `cohort` hoặc `className` thì trả 400 "Giáo viên không có niên khóa hoặc lớp".
+- **Học sinh và cựu học sinh** có thể đổi niên khóa và lớp sang giá trị khác, nhưng không thể xóa hai trường này.
+
+Kết quả:
+
+- Thành công (200): `{ "user": { ... } }` với hồ sơ sau khi cập nhật.
+- Lỗi 400: dữ liệu không hợp lệ (ví dụ niên khóa sai), body không có trường nào để cập nhật, hoặc giáo viên gửi niên khóa/lớp.
+- Lỗi 401: chưa đăng nhập.
+
+## Cách hoạt động của việc cập nhật
+
+- Service ghép câu `UPDATE` chỉ gồm những trường có trong request. Tên cột lấy từ một bảng cố định (`UPDATABLE_FIELDS`), không lấy từ người dùng.
+- Phân biệt rõ: trường **không gửi** thì không đụng đến, trường gửi **`null`** thì được xóa.
+- Vai trò lấy từ `req.user.role` (trong token JWT, do server ký), không lấy từ body, vì body do người dùng tự gửi nên không đáng tin.
+
+## Các điểm bảo mật
+
+- Schema zod chỉ khai báo 5 trường được sửa. Các trường khác như `role`, `isAdmin`, `email` bị bỏ qua, nên người dùng không thể tự nâng quyền qua route này.
+- Câu lệnh SQL dùng tham số (`$1`, `$2`, ...) nên không bị SQL injection.
+- `password_hash` không bao giờ nằm trong danh sách cột trả về.
+
+## Hạn chế hiện tại
+
+- `avatar_url` chưa sửa được qua API.
+- Vai trò lấy từ token, nên nếu sau này có tính năng đổi vai trò (ví dụ học sinh tốt nghiệp thành cựu học sinh) thì token cũ vẫn mang vai trò cũ cho đến khi hết hạn (7 ngày). Lúc đó cần xét lại, ví dụ đọc vai trò từ database.
+
+## Việc cần làm tiếp
+
+1. Xem hồ sơ công khai của người khác: `GET /api/users/:id`. Chỉ trả các trường an toàn, không có `email`, `is_admin`.
+2. Ảnh đại diện: upload bằng `uploadSingleImage`, cần chọn nơi lưu ảnh.
+3. Tìm kiếm người dùng theo tên, niên khóa, lớp để gắn thẻ bạn cùng lớp.
+
+## Liên quan đến module khác
+
+- `auth`: dùng chung bảng `users`, middleware `requireAuth`, và danh sách niên khóa `utils/cohorts.js`.
+- `memories`, `checkins`, `likes` (sau này): sẽ lấy thông tin người đăng từ module này để hiển thị tên và ảnh đại diện.
