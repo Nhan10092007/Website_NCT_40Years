@@ -96,3 +96,5 @@ CREATE INDEX IF NOT EXISTS idx_memories_location_status ON memories (location_id
 CREATE INDEX IF NOT EXISTS idx_memories_year ON memories (year);
 CREATE INDEX IF NOT EXISTS idx_users_cohort_class ON users (cohort, class_name);
 CREATE INDEX IF NOT EXISTS idx_comments_memory ON comments (memory_id);
+CREATE INDEX IF NOT EXISTS idx_checkins_location_id ON checkins (location_id);
+CREATE INDEX IF NOT EXISTS idx_checkins_created_at ON checkins (created_at DESC);
