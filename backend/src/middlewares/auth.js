@@ -19,6 +19,24 @@ export function requireAuth(req, res, next) {
   }
 }
 
+export function optionalAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const [scheme, token] = header.split(' ');
+
+  if (scheme !== 'Bearer' || !token) {
+    req.user = null;
+    return next();
+  }
+
+  try {
+    const payload = jwt.verify(token, env.jwtSecret);
+    req.user = { id: payload.id, role: payload.role, isAdmin: payload.isAdmin };
+  } catch {
+    req.user = null;
+  }
+  next();
+}
+
 // Phải đặt SAU requireAuth
 export function requireAdmin(req, res, next) {
   if (!req.user?.isAdmin) {
