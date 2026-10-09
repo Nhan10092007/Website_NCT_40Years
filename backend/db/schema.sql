@@ -98,3 +98,6 @@ CREATE INDEX IF NOT EXISTS idx_users_cohort_class ON users (cohort, class_name);
 CREATE INDEX IF NOT EXISTS idx_comments_memory ON comments (memory_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_location_id ON checkins (location_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_created_at ON checkins (created_at DESC);
+-- Trigram GIN index for memories search
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_memories_content_trgm ON memories USING gin (content gin_trgm_ops);
