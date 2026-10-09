@@ -98,3 +98,35 @@ CREATE INDEX IF NOT EXISTS idx_users_cohort_class ON users (cohort, class_name);
 CREATE INDEX IF NOT EXISTS idx_comments_memory ON comments (memory_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_location_id ON checkins (location_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_created_at ON checkins (created_at DESC);
+-- ============================================================
+-- DATABASE VIEWS (Eliminates repeated joins & Cartesian bloat)
+-- ============================================================
+CREATE OR REPLACE VIEW v_locations_detailed AS
+SELECT 
+    l.*,
+    COALESCE(c.checkin_count, 0)::int AS checkin_count,
+    COALESCE(lk.like_count, 0)::int AS like_count,
+    COALESCE(p.photo_count, 0)::int AS photo_count,
+    COALESCE(m.memory_count, 0)::int AS memory_count
+FROM locations l
+LEFT JOIN (
+    SELECT location_id, COUNT(*)::int AS checkin_count 
+    FROM checkins 
+    GROUP BY location_id
+) c ON c.location_id = l.id
+LEFT JOIN (
+    SELECT location_id, COUNT(*)::int AS like_count 
+    FROM location_likes 
+    GROUP BY location_id
+) lk ON lk.location_id = l.id
+LEFT JOIN (
+    SELECT location_id, COUNT(*)::int AS photo_count 
+    FROM location_photos 
+    GROUP BY location_id
+) p ON p.location_id = l.id
+LEFT JOIN (
+    SELECT location_id, COUNT(*)::int AS memory_count 
+    FROM memories 
+    WHERE status = 'approved'
+    GROUP BY location_id
+) m ON m.location_id = l.id;
