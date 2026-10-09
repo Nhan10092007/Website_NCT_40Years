@@ -11,6 +11,7 @@ import authRoutes from './modules/auth/auth.routes.js';
 import commentsRoutes from './modules/comments/comments.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import usersRoutes from './modules/users/users.routes.js';
+import memoriesRoutes from './modules/memories/memories.routes.js';
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/api/reactions', reactionsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/memories', memoriesRoutes);
 
 app.get('/health', async (req, res, next) => {
   try {
