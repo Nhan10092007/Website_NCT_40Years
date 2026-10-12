@@ -1,27 +1,8 @@
 import { query } from '../../config/db.js';
 import { AppError } from '../../utils/appError.js';
+import { resolveLocation } from '../locations/locations.service.js';
 
-/**
- * Tìm địa điểm theo ID hoặc Slug
- */
-export async function resolveLocation(identifier) {
-  const isNumeric = /^\d+$/.test(String(identifier));
-  let res;
-
-  if (isNumeric) {
-    res = await query(
-      'SELECT id, slug, name, description, panorama_url FROM locations WHERE id = $1',
-      [Number(identifier)]
-    );
-  } else {
-    res = await query(
-      'SELECT id, slug, name, description, panorama_url FROM locations WHERE slug = $1',
-      [String(identifier).trim()]
-    );
-  }
-
-  return res.rows[0] ?? null;
-}
+export { resolveLocation };
 
 /**
  * Thực hiện check-in vào địa điểm
