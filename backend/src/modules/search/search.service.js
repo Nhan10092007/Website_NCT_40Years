@@ -12,10 +12,10 @@ export async function searchUsers({ q, cohort, className, role, page = 1, limit 
     const qMatches = [];
     params.push(`%${q}%`);
     const qIdx = params.length;
-    qMatches.push(`u.display_name ILIKE $${qIdx}`);
-    qMatches.push(`u.job ILIKE $${qIdx}`);
-    qMatches.push(`u.current_city ILIKE $${qIdx}`);
-    qMatches.push(`u.class_name ILIKE $${qIdx}`);
+    qMatches.push(`unaccent(u.display_name) ILIKE unaccent($${qIdx})`);
+    qMatches.push(`unaccent(COALESCE(u.job, '')) ILIKE unaccent($${qIdx})`);
+    qMatches.push(`unaccent(COALESCE(u.current_city, '')) ILIKE unaccent($${qIdx})`);
+    qMatches.push(`unaccent(COALESCE(u.class_name, '')) ILIKE unaccent($${qIdx})`);
     qMatches.push(`u.cohort ILIKE $${qIdx}`);
 
     // Nhận diện thông minh nếu người dùng gõ số năm (vd: 2019, 19) trong ô tìm kiếm chung
@@ -97,7 +97,7 @@ export async function searchLocations({ q, page = 1, limit = 10 } = {}) {
   if (q) {
     params.push(`%${q}%`);
     const idx = params.length;
-    conditions.push(`(l.name ILIKE $${idx} OR l.description ILIKE $${idx})`);
+    conditions.push(`(unaccent(l.name) ILIKE unaccent($${idx}) OR unaccent(COALESCE(l.description, '')) ILIKE unaccent($${idx}))`);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -150,7 +150,7 @@ export async function searchMemories({ q, cohort, className, year, page = 1, lim
 
   if (q) {
     params.push(`%${q}%`);
-    conditions.push(`m.content ILIKE $${params.length}`);
+    conditions.push(`unaccent(m.content) ILIKE unaccent($${params.length})`);
   }
 
   if (year) {
