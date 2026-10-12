@@ -1,4 +1,5 @@
 import { query } from '../../config/db.js';
+import { resolveCohortVariants } from '../../utils/cohorts.js';
 
 /**
  * Tìm kiếm cựu học sinh / giáo viên / học sinh
@@ -8,14 +9,33 @@ export async function searchUsers({ q, cohort, className, role, page = 1, limit 
   const params = [];
 
   if (q) {
+    const qMatches = [];
     params.push(`%${q}%`);
-    const idx = params.length;
-    conditions.push(`(u.display_name ILIKE $${idx} OR u.job ILIKE $${idx} OR u.current_city ILIKE $${idx})`);
+    const qIdx = params.length;
+    qMatches.push(`u.display_name ILIKE $${qIdx}`);
+    qMatches.push(`u.job ILIKE $${qIdx}`);
+    qMatches.push(`u.current_city ILIKE $${qIdx}`);
+    qMatches.push(`u.class_name ILIKE $${qIdx}`);
+    qMatches.push(`u.cohort ILIKE $${qIdx}`);
+
+    // Nhận diện thông minh nếu người dùng gõ số năm (vd: 2019, 19) trong ô tìm kiếm chung
+    const autoCohortVariants = resolveCohortVariants(q);
+    for (const v of autoCohortVariants) {
+      if (v !== `%${q}%`) {
+        params.push(v);
+        qMatches.push(`u.cohort ILIKE $${params.length}`);
+      }
+    }
+    conditions.push(`(${qMatches.join(' OR ')})`);
   }
 
   if (cohort) {
-    params.push(`%${cohort}%`);
-    conditions.push(`u.cohort ILIKE $${params.length}`);
+    const cohortVariants = resolveCohortVariants(cohort);
+    const cohortMatches = cohortVariants.map((v) => {
+      params.push(v);
+      return `u.cohort ILIKE $${params.length}`;
+    });
+    conditions.push(`(${cohortMatches.join(' OR ')})`);
   }
 
   if (className) {
@@ -139,8 +159,12 @@ export async function searchMemories({ q, cohort, className, year, page = 1, lim
   }
 
   if (cohort) {
-    params.push(`%${cohort}%`);
-    conditions.push(`u.cohort ILIKE $${params.length}`);
+    const cohortVariants = resolveCohortVariants(cohort);
+    const cohortMatches = cohortVariants.map((v) => {
+      params.push(v);
+      return `u.cohort ILIKE $${params.length}`;
+    });
+    conditions.push(`(${cohortMatches.join(' OR ')})`);
   }
 
   if (className) {

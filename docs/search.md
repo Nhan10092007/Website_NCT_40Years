@@ -170,7 +170,21 @@ Response:
 
 ---
 
+### 3.3. Tính năng Nhận diện Niên khóa Thông minh (Smart Cohort Matching)
+
+Hệ thống tích hợp bộ xử lý thông minh `resolveCohortVariants()` tại `utils/cohorts.js`, cho phép người dùng gõ tắt linh hoạt:
+- **Gõ 2 chữ số (vd `19`, `86`, `05`)**: Tự động chuyển đổi thành niên khóa 3 năm tương ứng:
+  - `19` $\rightarrow$ Tự nhận diện và tìm các bạn thuộc khóa **`2019-2022`** (hoặc `19-22`).
+  - `86` $\rightarrow$ Tự nhận diện và tìm các bạn thuộc khóa **`1986-1989`** (Khóa đầu tiên của trường).
+- **Gõ 4 chữ số (vd `2019`)**: Tự động nhận diện năm bắt đầu niên khóa 3 năm:
+  - `2019` $\rightarrow$ Tìm kiếm niên khóa **`2019-2022`** (và cả năm tốt nghiệp `2016-2019`).
+- **Gõ dạng gạch nối rút gọn (vd `19-22`)**: Tự động mở rộng thành `2019-2022`.
+- **Hỗ trợ cả ô tìm kiếm chung `q`**: Nếu người dùng gõ `q=19` hay `q=2019` vào thanh tìm kiếm chính, hệ thống cũng tự động quét và khớp với niên khóa `2019-2022` của cựu học sinh.
+
+---
+
 ## 4. Bảo mật & Hiệu năng
 - **Bảo mật**: Tuyệt đối không chọn trường `password_hash` hay `email` trong kết quả tìm kiếm public của người dùng.
 - **Duyệt bài viết**: Chỉ những kỷ niệm có trạng thái `status = 'approved'` mới được xuất hiện trong kết quả tìm kiếm.
 - **SQL Injection**: Toàn bộ tham số tìm kiếm được tham số hóa thông qua Parameterized Queries (`$1`, `$2`, ...) của thư viện `pg`.
+
