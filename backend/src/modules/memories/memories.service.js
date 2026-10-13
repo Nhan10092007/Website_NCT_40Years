@@ -167,7 +167,7 @@ export async function createMemory(userId, { locationId, content, year = null, i
 
   const { rows } = await query(
     `INSERT INTO memories (user_id, location_id, content, year, status)
-     VALUES ($1, $2, $3, $4, 'approved')
+     VALUES ($1, $2, $3, $4, 'pending')
      RETURNING id, user_id, location_id, content, year, status, created_at`,
     [userId, location.id, content, year || null]
   );
