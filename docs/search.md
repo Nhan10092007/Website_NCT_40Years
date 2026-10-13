@@ -188,3 +188,10 @@ Hệ thống tích hợp bộ xử lý thông minh `resolveCohortVariants()` t�
 - **Duyệt bài viết**: Chỉ những kỷ niệm có trạng thái `status = 'approved'` mới được xuất hiện trong kết quả tìm kiếm.
 - **SQL Injection**: Toàn bộ tham số tìm kiếm được tham số hóa thông qua Parameterized Queries (`$1`, `$2`, ...) của thư viện `pg`.
 
+---
+
+## 5. Trạng thái kiểm thử & Hoàn thiện
+- **Kiểm thử tích hợp**: Vượt qua 15/15 kịch bản kiểm thử tích hợp (100% PASS) kiểm tra đầy đủ các chế độ truy vấn (`all`, `users`, `locations`, `memories`), xử lý tiếng Việt không dấu (`unaccent`), và nhận diện niên khóa thông minh (`resolveCohortVariants`).
+- **Sẵn sàng tích hợp**: Sẵn sàng tạo Pull Request tích hợp vào nhánh `develop`.
+
+
