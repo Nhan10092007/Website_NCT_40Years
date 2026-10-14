@@ -15,6 +15,18 @@ const PUBLIC_USER_COLUMNS = `
   created_at
 `;
 
+const PUBLIC_PROFILE_COLUMNS = `
+  id,
+  display_name,
+  role,
+  cohort,
+  class_name,
+  current_city,
+  job,
+  avatar_url,
+  created_at
+`;
+
 // Tên trường trong body -> tên cột trong database.
 // Tên cột lấy từ bảng cố định này, không lấy từ người dùng nên an toàn khi ghép vào SQL.
 const UPDATABLE_FIELDS = {
@@ -23,6 +35,8 @@ const UPDATABLE_FIELDS = {
   className: 'class_name',
   currentCity: 'current_city',
   job: 'job',
+  avatarURL: 'avatar_url',
+  avatarUrl: 'avatar_url',
 };
 
 export async function getProfile(userId) {
@@ -39,6 +53,30 @@ export async function getProfile(userId) {
 
   return rows[0];
 }
+
+export async function getUserById(userId) {
+  const { rows } = await query(
+    `SELECT ${PUBLIC_PROFILE_COLUMNS}
+     FROM users
+     WHERE id = $1`,
+    [userId]
+  );
+
+  if (!rows[0]) {
+    throw new AppError('Tài khoản không tồn tại', 404);
+  }
+
+  const countRes = await query(
+    'SELECT COUNT(*)::int AS checkin_count FROM checkins WHERE user_id = $1',
+    [userId]
+  );
+
+  return {
+    ...rows[0],
+    checkinCount: countRes.rows[0]?.checkin_count ?? 0,
+  };
+}
+
 
 export async function updateProfile(userId, role, data) {
   // Giáo viên không có niên khóa và lớp
