@@ -14,6 +14,7 @@ import usersRoutes from './modules/users/users.routes.js';
 import searchRoutes from './modules/search/search.routes.js';
 import memoriesRoutes from './modules/memories/memories.routes.js';
 import rankingsRoutes from './modules/rankings/rankings.routes.js';
+import adminRoutes from './modules/admin/admin.routes.js';
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/memories', memoriesRoutes);
 app.use('/api/rankings', rankingsRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/health', async (req, res, next) => {
   try {
