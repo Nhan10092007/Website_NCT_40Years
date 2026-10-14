@@ -3,8 +3,7 @@ import * as service from './comments.service.js';
 export async function listByMemory(req, res, next) {
   try {
     const memoryId = Number(req.params.memoryId);
-    const page = Math.max(Number(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
+    const { page = 1, limit = 20 } = req.validated_query || req.query;
     const result = await service.listComments(memoryId, { page, limit });
     res.json(result);
   } catch (err) {
@@ -58,8 +57,7 @@ export async function remove(req, res, next) {
 
 export async function mine(req, res, next) {
   try {
-    const page = Math.max(Number(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
+    const { page = 1, limit = 20 } = req.validated_query || req.query;
     const result = await service.getMyComments(req.user.id, { page, limit });
     res.json(result);
   } catch (err) {
