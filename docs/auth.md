@@ -1,235 +1,245 @@
-# Phần Auth: Đăng Ký, Đăng Nhập, Phân Quyền & Hồ Sơ Cá Nhân
+# Đặc Tả Kỹ Thuật Module Auth & Users (Xác Thực, Phân Quyền & Quản Lý Tài Khoản)
 
-Chào anh em! Đây là tài liệu giải thích toàn bộ phần **Xác thực (Authentication)**, **Phân quyền (Authorization)** và **Quản lý tài khoản (Users)** của backend web kỷ niệm 40 năm NCT (viết bằng Express, ES Modules và PostgreSQL) do Thiện Nhân phụ trách.
-
-Nếu bạn là thành viên mới vào team, người vào sau cần sửa lỗi/thêm tính năng, hoặc đang làm Frontend cần kết nối API, bạn chỉ cần đọc file này là sẽ nắm được toàn bộ cách hoạt động của hệ thống tài khoản.
-
----
-
-## 1. Tóm tắt nhanh: Phần này giải quyết những việc gì?
-
-Về cơ bản, phần này trả lời 2 câu hỏi lớn của hệ thống:
-1. **Bạn là ai?** (Authentication): Cho phép học sinh, cựu học sinh và thầy cô đăng ký tài khoản, đăng nhập, nhận mã token JWT và xem thông tin cá nhân của mình.
-2. **Bạn được phép làm gì?** (Authorization): Kiểm tra xem ai là khách vãng lai (chỉ được xem), ai là thành viên đã đăng nhập (được đăng bài, bình luận, check-in, thả tim), và ai là **Admin** (được duyệt bài, gỡ nội dung xấu, quản lý địa điểm).
+> **Dự án**: Website Kỷ niệm 40 năm THPT Nguyễn Công Trứ (`Website_NCT_40Years`)  
+> **Module**: `auth`, `users` | **Trạng thái**: Hoạt động ổn định  
+> **Nền tảng**: Node.js (ES Modules) • Express 5 • PostgreSQL 16+
 
 ---
 
-## 2. Cấu trúc thư mục & nhiệm vụ từng tầng
+## 1. Mục Tiêu & Phạm Vi Nghiệp Vụ
 
-Code được chia tách thành 2 module chính trong `backend/src/modules/`: `auth` (chuyên việc đăng nhập/đăng ký) và `users` (chuyên việc xem và sửa thông tin cá nhân).
+Hệ thống cung cấp giải pháp nhận thực phân tán không trạng thái (Stateless JWT Authentication) và kiểm soát truy cập dựa trên vai trò (RBAC):
+1. **Quản lý danh tính (Authentication)**: Đăng ký thành viên mới, mã hóa mật khẩu một chiều, đăng nhập phát hành JWT Bearer Token, kiểm tra trạng thái phiên làm việc (`/me`).
+2. **Kiểm soát quyền truy cập (Authorization & RBAC)**:
+   - `Guest`: Quyền xem các dữ liệu công khai (danh sách địa điểm, virtual tour, bài viết đã duyệt).
+   - `Authenticated User` (`student`, `alumni`, `teacher`): Quyền đăng bài viết kỷ niệm, bình luận, điểm danh check-in, thả tim.
+   - `Admin` (`is_admin = TRUE`): Quyền duyệt bài viết, kiểm duyệt nội dung, quản trị thư viện địa điểm.
+3. **Quản lý hồ sơ (User Profiles)**: Cập nhật thông tin cá nhân, cập nhật/xóa avatar, xem hồ sơ công khai của thành viên (ẩn email và hash mật khẩu).
+4. **Tự động hóa danh mục niên khóa (Dynamic Cohorts)**: Sinh danh mục niên khóa 3 năm chuẩn theo chu kỳ từ năm 1986 đến nay.
 
-```
+---
+
+## 2. Cấu Trúc Mã Nguồn
+
+```text
 backend/src/
-├── app.js                       # Gắn các route /api/auth và /api/users, errorHandler đặt cuối
 ├── config/
-│   ├── db.js                    # Kết nối database PostgreSQL
-│   └── env.js                   # Đọc các biến môi trường (.env: JWT_SECRET, PORT...)
-├── modules/
-│   ├── auth/
-│   │   ├── auth.schema.js       # Kiểm tra dữ liệu đăng ký/đăng nhập gửi lên (bằng Zod)
-│   │   ├── auth.service.js      # Băm mật khẩu (bcrypt), truy vấn SQL, tạo mã JWT
-│   │   ├── auth.controller.js   # Nhận request, gọi service, trả response về cho client
-│   │   └── auth.routes.js       # Khai báo URL và gắn các middleware kiểm tra
-│   └── users/
-│       ├── users.schema.js      # Kiểm tra dữ liệu khi người dùng sửa hồ sơ
-│       ├── users.service.js     # Lấy thông tin cá nhân, cập nhật thông tin trong DB
-│       ├── users.controller.js  # Điều phối dữ liệu hồ sơ
-│       └── users.routes.js      # Khai báo các route xem/sửa thông tin
+│   ├── db.js                    # Kết nối cơ sở dữ liệu PostgreSQL (Pool)
+│   └── env.js                   # Trích xuất và kiểm tra biến môi trường
 ├── middlewares/
-│   ├── auth.js                  # requireAuth (bắt buộc đăng nhập), requireAdmin (bắt buộc admin)
-│   ├── validate.js              # Chạy schema Zod trước khi dữ liệu vào controller
-│   ├── errorHandler.js          # Bắt lỗi và trả về JSON thống nhất cho toàn app
-│   ├── rateLimit.js             # Giới hạn số lần gọi API (chống spam đăng nhập/đăng ký)
-│   ├── requireRole.js           # Kiểm tra vai trò (học sinh, cựu học sinh, giáo viên)
-│   └── upload.js                # Xử lý nhận file ảnh tải lên (Multer)
+│   ├── auth.js                  # requireAuth, optionalAuth, requireAdmin
+│   ├── rateLimit.js             # Giới hạn tần suất loginLimiter, registerLimiter
+│   ├── requireRole.js           # Kiểm tra phân quyền theo vai trò người dùng
+│   └── validate.js              # Xác thực schema dữ liệu đầu vào với Zod
+├── modules/
+│   ├── auth/                    # Module đăng ký, đăng nhập, cấp token
+│   │   ├── auth.schema.js
+│   │   ├── auth.service.js
+│   │   ├── auth.controller.js
+│   │   └── auth.routes.js
+│   └── users/                   # Module quản lý hồ sơ người dùng
+│       ├── users.schema.js
+│       ├── users.service.js
+│       ├── users.controller.js
+│       └── users.routes.js
 └── utils/
-    ├── cohorts.js               # Tự động sinh danh sách niên khóa hợp lệ (từ 1986 đến nay)
-    └── appError.js              # Class tạo lỗi có sẵn mã HTTP (400, 401, 403, 404...)
+    ├── appError.js              # Định nghĩa lỗi nghiệp vụ AppError
+    └── cohorts.js               # Logic sinh và xác thực niên khóa
 ```
-
-### Quy tắc làm việc giữa các tầng (Anh em lưu ý để không làm rối code):
-- **Routes:** Chỉ làm nhiệm vụ dẫn đường và chọn middleware bảo vệ.
-- **Schema:** Chỉ kiểm tra dữ liệu gửi lên đúng hay sai. Sai là chặn ngay từ cửa, trả lỗi `400`.
-- **Controller:** Chỉ bóc tách `req.body`, `req.user`, gọi xuống Service và trả kết quả về `res`. Controller không bao giờ viết câu lệnh SQL.
-- **Service:** Làm việc nặng thật sự (băm mật khẩu, chạy SQL, tạo token). Service không được đụng vào đối tượng `req` hay `res`.
 
 ---
 
-## 3. Luồng hoạt động thực tế
+## 3. Thiết Kế Cơ Sở Dữ Liệu
 
-### 3.1. Đăng ký tài khoản mới (`POST /api/auth/register`)
-1. Client gửi thông tin tài khoản lên.
-2. Request chạy qua `registerLimiter` (chống spam tạo tài khoản hàng loạt).
-3. `validate(registerSchema)` kiểm tra định dạng email, độ dài mật khẩu, niên khóa hợp lệ... Nếu sai báo lỗi `400` ngay.
-4. Service băm mật khẩu bằng **bcrypt** (10 vòng băm an toàn), sau đó chạy câu lệnh `INSERT` vào bảng `users`.
-5. Tạo token JWT chứa thông tin cơ bản `{ id, role, isAdmin }`.
-6. Trả về `201 Created` kèm thông tin người dùng (`user`) và `token`.
+```sql
+CREATE TABLE IF NOT EXISTS users (
+  id            SERIAL PRIMARY KEY,
+  email         TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  display_name  TEXT NOT NULL,
+  avatar_url    TEXT,
+  role          TEXT NOT NULL DEFAULT 'student'
+                CHECK (role IN ('student', 'alumni', 'teacher')),
+  cohort        TEXT,
+  class_name    TEXT,
+  current_city  TEXT,
+  job           TEXT,
+  is_admin      BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
-### 3.2. Đăng nhập (`POST /api/auth/login`)
-1. Client gửi `email` và `password`.
-2. Chạy qua `loginLimiter` (giới hạn số lần thử, tránh bị dò mật khẩu).
-3. Service tìm người dùng theo email:
-   - Dù email không tồn tại hay mật khẩu bị sai, backend đều trả về **cùng một thông báo** `401: Email hoặc mật khẩu không chính xác`. Điều này để tránh kẻ xấu dò biết email nào đã đăng ký trong hệ thống.
-4. Nếu đúng mật khẩu -> tạo mã JWT và trả về `200 OK` kèm `token`.
+CREATE INDEX IF NOT EXISTS idx_users_cohort_class ON users (cohort, class_name);
+```
 
-### 3.3. Khi gọi các API cần đăng nhập
-1. Frontend đính kèm header: `Authorization: Bearer <token>`.
-2. Middleware `requireAuth` đọc token, kiểm tra chữ ký và hạn dùng. Nếu hợp lệ, nó sẽ gắn `req.user = { id, role, isAdmin }`.
-3. Các controller phía sau chỉ việc đọc `req.user.id` là biết ai đang gọi API.
+### Ràng buộc & Tiêu chuẩn bảo mật:
+- **Băm mật khẩu**: Sử dụng `bcryptjs` với hệ số làm tròn 10 rounds. Giới hạn độ dài mật khẩu đầu vào tối đa 72 ký tự theo đặc tả kỹ thuật của thuật toán Blowfish.
+- **Bảo mật truy vấn**: Tuyệt đối không chọn cột `password_hash` trong các truy vấn trả về Client.
+- **Quyền Quản trị viên (`is_admin`)**: Mặc định `FALSE`, không cho phép gán đè qua request body.
 
 ---
 
-## 4. Dữ liệu tài khoản người dùng
+## 4. Danh Sách API Endpoints
 
-Bảng `users` trong cơ sở dữ liệu:
+### 4.1. Nhóm API Xác Thực (`/api/auth`)
 
-| Trường gửi lên | Cột trong CSDL | Bắt buộc? | Ý nghĩa & Quy tắc |
-|---|---|:---:|---|
-| `email` | `email` | Có | Tự động chuyển về chữ thường, cắt khoảng trắng, không được trùng |
-| `password` | `password_hash` | Có | Từ 8 đến 72 ký tự, được băm an toàn trước khi lưu |
-| `displayName` | `display_name` | Có | Tên hiển thị của người dùng (ví dụ: "Nguyễn Văn An") |
-| `role` | `role` | Có | Nhận 1 trong 3 giá trị: `student` (học sinh), `alumni` (cựu học sinh), `teacher` (thầy cô) |
-| `cohort` | `cohort` | Bắt buộc với học sinh/cựu học sinh | Niên khóa học 3 năm (ví dụ: `2015-2018`). Thầy cô có thể để trống. |
-| `className` | `class_name` | Bắt buộc với học sinh/cựu học sinh | Lớp học (ví dụ: `12A3`). Thầy cô có thể để trống. |
-| `currentCity` | `current_city` | Không | Thành phố đang sinh sống hiện tại |
-| `job` | `job` | Không | Nghề nghiệp / công việc hiện tại |
-| `avatarURL` | `avatar_url` | Không | Đường link ảnh đại diện |
+#### A. Danh Mục Niên Khóa
+* **Endpoint**: `GET /api/auth/cohorts`
+* **Xác thực**: Công khai
+* **Response (HTTP 200 OK)**:
+  ```json
+  ["2026-2029", "2025-2028", "2024-2027", "...", "1986-1989"]
+  ```
 
-> **Lưu ý quan trọng:** Cột `is_admin` **không bao giờ** nhận từ phía client gửi lên. Mặc định khi tạo tài khoản luôn là `false`. Muốn cấp quyền admin thì phải sửa trực tiếp trong CSDL.
-
-### Quy tắc niên khóa của trường THPT Nguyễn Công Trứ:
-- Một khóa học cấp 3 kéo dài **3 năm**, định dạng: `năm_bắt_đầu-năm_kết_thúc` (ví dụ `2022-2025`).
-- Khóa đầu tiên của trường là `1986-1989` (năm thành lập trường).
-- Khóa mới nhất được tính tự động dựa trên năm hiện tại của hệ thống.
-- Hàm `generateCohorts()` trong `utils/cohorts.js` tự động sinh ra danh sách này và sắp xếp khóa mới nhất lên đầu.
-
----
-
-## 5. Danh sách các API chi tiết
-
-Mọi phản hồi báo lỗi từ hệ thống đều có dạng chuẩn:
-```json
-{ "message": "Nội dung thông báo lỗi bằng tiếng Việt" }
-```
-
-### 5.1. Lấy danh sách niên khóa để hiển thị ô chọn (`<select>`)
-- **Method:** `GET`
-- **URL:** `/api/auth/cohorts`
-- **Quyền:** Công khai (ai cũng gọi được)
-- **Response `200 OK`:** Mảng danh sách các khóa từ mới nhất đến năm 1986:
-  `["2026-2029", "2025-2028", ..., "1986-1989"]`
-
-### 5.2. Đăng ký tài khoản
-- **Method:** `POST`
-- **URL:** `/api/auth/register`
-- **Body mẫu:**
-```json
-{
-  "email": "an@example.com",
-  "password": "matkhau123",
-  "displayName": "Nguyễn Văn An",
-  "role": "alumni",
-  "cohort": "2015-2018",
-  "className": "12A3",
-  "currentCity": "TP.HCM",
-  "job": "Kỹ sư phần mềm"
-}
-```
-- **Response `201 Created`:**
-```json
-{
-  "user": {
-    "id": 1,
-    "email": "an@example.com",
-    "display_name": "Nguyễn Văn An",
+#### B. Đăng Ký Tài Khoản
+* **Endpoint**: `POST /api/auth/register`
+* **Xác thực**: Công khai (Giới hạn: 20 request/giờ qua `registerLimiter`)
+* **Request Body**:
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "SecurePassword123",
+    "displayName": "Nguyễn Văn An",
     "role": "alumni",
     "cohort": "2015-2018",
-    "class_name": "12A3",
-    "is_admin": false
-  },
-  "token": "eyJhbGciOiJIUzI1Ni..."
-}
-```
-- **Các lỗi thường gặp:**
-  - `400`: Dữ liệu không hợp lệ (mật khẩu quá ngắn, niên khóa không đúng format...).
-  - `409`: Email này đã được đăng ký trước đó.
-  - `429`: Bấm đăng ký quá nhiều lần liên tục (bị chặn tạm thời).
+    "className": "12A3",
+    "currentCity": "TP.HCM",
+    "job": "Kỹ sư phần mềm"
+  }
+  ```
+* **Response (HTTP 201 Created)**:
+  ```json
+  {
+    "user": {
+      "id": 1,
+      "email": "user@example.com",
+      "display_name": "Nguyễn Văn An",
+      "role": "alumni",
+      "cohort": "2015-2018",
+      "class_name": "12A3",
+      "is_admin": false
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+  ```
 
-### 5.3. Đăng nhập
-- **Method:** `POST`
-- **URL:** `/api/auth/login`
-- **Body:** `{ "email": "an@example.com", "password": "matkhau123" }`
-- **Response `200 OK`:** Trả về `{ "user": {...}, "token": "..." }`.
-- **Response `401 Unauthorized`:** Sai email hoặc sai mật khẩu.
+#### C. Đăng Nhập
+* **Endpoint**: `POST /api/auth/login`
+* **Xác thực**: Công khai (Giới hạn: 10 lần thất bại/15 phút qua `loginLimiter`)
+* **Request Body**:
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "SecurePassword123"
+  }
+  ```
+* **Response (HTTP 200 OK)**:
+  ```json
+  {
+    "user": {
+      "id": 1,
+      "email": "user@example.com",
+      "display_name": "Nguyễn Văn An",
+      "role": "alumni",
+      "is_admin": false
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+  ```
+* **Lỗi Thất Bại (HTTP 401 Unauthorized)**:
+  ```json
+  { "message": "Email hoặc mật khẩu không chính xác" }
+  ```
 
-### 5.4. Xem thông tin của chính mình (`/me`)
-- **Method:** `GET`
-- **URL:** `/api/auth/me`
-- **Header:** `Authorization: Bearer <TOKEN>`
-- **Response `200 OK`:** Trả về đầy đủ thông tin cá nhân của người đang đăng nhập.
-
-### 5.5. Đổi mật khẩu
-- **Method:** `PATCH`
-- **URL:** `/api/auth/password`
-- **Header:** `Authorization: Bearer <TOKEN>`
-- **Body:** `{ "currentPassword": "matkhaucu", "newPassword": "matkhaumoi123" }`
-- **Response `200 OK`:** `{ "message": "Đã đổi mật khẩu" }`
-- **Lưu ý:** Nếu người dùng gõ sai mật khẩu hiện tại, API cố ý trả về `400` (thay vì `401`) để Frontend không tự động đăng xuất người dùng ra màn hình login.
-
-### 5.6. Xem hồ sơ công khai của người khác
-- **Method:** `GET`
-- **URL:** `/api/users/:id`
-- **Header:** `Authorization: Bearer <TOKEN>`
-- **Response `200 OK`:** Trả về thông tin công khai (tên, khóa, lớp, công việc...) và **không bao giờ trả về email hay password_hash** để bảo vệ quyền riêng tư.
-
-### 5.7. Cập nhật hồ sơ cá nhân
-- **Method:** `PATCH`
-- **URL:** `/api/users/me`
-- **Header:** `Authorization: Bearer <TOKEN>`
-- **Body:** Chỉ gửi những trường muốn cập nhật (`displayName`, `cohort`, `className`, `currentCity`, `job`, `avatarURL`).
-- **Response `200 OK`:** Trả về đối tượng `user` mới nhất sau khi sửa.
+#### D. Kiểm Tra Trạng Thái Phiên Đăng Nhập
+* **Endpoint**: `GET /api/auth/me`
+* **Xác thực**: Bắt buộc (`requireAuth`)
+* **Headers**: `Authorization: Bearer <TOKEN>`
+* **Response (HTTP 200 OK)**: Toàn bộ thông tin hồ sơ của tài khoản đang đăng nhập.
 
 ---
 
-## 6. Bảo mật hệ thống đã được cài cắm những gì?
+### 4.2. Nhóm API Hồ Sơ Người Dùng (`/api/users`)
 
-1. **Băm mật khẩu:** Sử dụng `bcrypt` với 10 vòng mã hóa. Mật khẩu gốc không bao giờ được lưu trong cơ sở dữ liệu. Giới hạn mật khẩu tối đa 72 ký tự vì bcrypt chỉ xử lý 72 bytes đầu.
-2. **Chống SQL Injection:** 100% các câu lệnh SQL trong `service` đều dùng tham số hóa dạng `$1, $2, $3...`, tuyệt đối không cộng chuỗi SQL.
-3. **Chống lộ thông tin đăng nhập:** Đăng nhập sai email hay sai mật khẩu đều báo chung một thông điệp lỗi `401`.
-4. **Bảo vệ tài nguyên:** Giới hạn số lần gọi (`express-rate-limit`) tại các route nhạy cảm như đăng nhập và đăng ký để chống tấn công brute-force.
-5. **Không bao giờ lộ mật khẩu:** Mọi câu query và response trả về client đều loại trừ cột `password_hash`.
+#### A. Xem Hồ Sơ Cá Nhân
+* **Endpoint**: `GET /api/users/me`
+* **Xác thực**: Bắt buộc (`requireAuth`)
+
+#### B. Cập Nhật Hồ Sơ Cá Nhân
+* **Endpoint**: `PATCH /api/users/me`
+* **Xác thực**: Bắt buộc (`requireAuth`)
+* **Request Body**:
+  ```json
+  {
+    "displayName": "Nguyễn Văn An",
+    "avatarURL": "https://res.cloudinary.com/.../avatar.jpg",
+    "currentCity": "Hà Nội",
+    "job": "Kiến trúc sư"
+  }
+  ```
+* **Response (HTTP 200 OK)**: Dữ liệu hồ sơ sau khi cập nhật.
+
+#### C. Xem Hồ Sơ Công Khai Thành Viên Khác
+* **Endpoint**: `GET /api/users/:id`
+* **Xác thực**: Bắt buộc (`requireAuth`)
+* **Response (HTTP 200 OK)**:
+  ```json
+  {
+    "id": 2,
+    "display_name": "Trần Thị B",
+    "role": "alumni",
+    "cohort": "2010-2013",
+    "class_name": "12 Văn",
+    "current_city": "Đà Nẵng",
+    "job": "Nhà báo",
+    "avatar_url": "https://...",
+    "created_at": "2026-10-01T00:00:00.000Z",
+    "checkinCount": 9
+  }
+  ```
+  *(Lưu ý: Không bao giờ trả về trường `email` hoặc `password_hash`).*
 
 ---
 
-## 7. Hướng dẫn test nhanh bằng cURL
-
-Bạn mở Terminal và có thể chạy thử các lệnh này để kiểm tra backend:
+## 5. Mẫu Lệnh Kiểm Thử Kỹ Thuật (cURL)
 
 ```bash
 # 1. Lấy danh sách niên khóa
-curl http://localhost:3000/api/auth/cohorts
+curl -X GET http://localhost:3000/api/auth/cohorts
 
-# 2. Đăng ký tài khoản thử nghiệm
+# 2. Đăng ký tài khoản mới
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"an@example.com","password":"matkhau123","displayName":"Nguyễn Văn An","role":"alumni","cohort":"2015-2018","className":"12A3"}'
+  -d '{
+    "email": "test@example.com",
+    "password": "Password123!",
+    "displayName": "Người Dùng Thử Nghiệm",
+    "role": "student",
+    "cohort": "2023-2026",
+    "className": "12A1"
+  }'
 
-# 3. Đăng nhập để lấy Token
+# 3. Đăng nhập hệ thống
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"an@example.com","password":"matkhau123"}'
+  -d '{"email":"test@example.com","password":"Password123!"}'
 
-# 4. Xem thông tin của tôi (thay TOKEN bằng chuỗi nhận được ở bước 3)
-curl http://localhost:3000/api/auth/me \
-  -H "Authorization: Bearer TOKEN"
+# 4. Kiểm tra phiên đăng nhập
+curl -X GET http://localhost:3000/api/auth/me \
+  -H "Authorization: Bearer <TOKEN>"
+
+# 5. Xem hồ sơ công khai thành viên ID 1
+curl -X GET http://localhost:3000/api/users/1 \
+  -H "Authorization: Bearer <TOKEN>"
 ```
 
 ---
 
-## 8. Gợi ý dành cho anh em làm Frontend
+## 6. Tiêu Chuẩn Triển Khai Phía Client (Frontend Guidelines)
 
-- **Ô chọn niên khóa:** Gọi `GET /api/auth/cohorts` lúc tải trang để đổ danh sách vào thẻ `<select>`.
-- **Giáo viên không có niên khóa:** Nếu là thầy cô, form đăng ký **không được gửi trường `cohort` lên** (đừng gửi chuỗi rỗng `""` vì Zod sẽ báo lỗi niên khóa không hợp lệ).
-- **Lưu trữ phiên đăng nhập:** Sau khi đăng nhập thành công, lưu `token` vào `localStorage`. Cấu hình Axios (`client.js`) tự động đính kèm `Authorization: Bearer <token>` cho mọi request tiếp theo.
-- **Xử lý hết hạn phiên:** Khi bất kỳ API nào trả về mã lỗi `401`, hãy xóa token trong `localStorage` và chuyển hướng người dùng về trang Đăng nhập.
-- **Trang Quản trị (`/admin`):** Chỉ hiển thị menu hoặc link vào trang quản trị khi `user.is_admin === true`. Tuy nhiên ở backend, các API nhạy cảm đều đã có middleware `requireAdmin` chặn cổng an toàn.
+1. **Quản Lý Token & Axios Interceptor**:
+   - Lưu trữ Bearer Token tại `localStorage`.
+   - Cấu hình Axios request interceptor tự động gán `Authorization: Bearer <token>` nếu token tồn tại.
+   - Cấu hình Axios response interceptor bắt mã lỗi `401 Unauthorized`: thực hiện xóa token và chuyển hướng về `/login`.
+2. **Quy Tắc Form Đăng Ký**:
+   - Khởi tạo danh sách niên khóa bằng cách gọi `GET /api/auth/cohorts`.
+   - Đối với vai trò Giáo viên (`role = 'teacher'`), không gửi trường `cohort` và `className` lên server.

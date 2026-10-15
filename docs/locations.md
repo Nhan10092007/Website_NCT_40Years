@@ -1,210 +1,234 @@
-# Phần Locations: Không Gian Trường, Kho Ảnh Xưa & Nay & Tour Ảo 360°
+# Đặc Tả Kỹ Thuật Module Locations (Khuôn Viên Trường & Virtual Tour 360°)
 
-Chào anh em! Đây là tài liệu hướng dẫn chi tiết về module **Địa điểm (Locations)** của backend website kỷ niệm 40 năm NCT (Express, ES Modules, PostgreSQL) do Khang Lê phụ trách.
-
-Nếu bạn là thành viên mới vào nhóm cần sửa code, thêm tính năng, hoặc là người làm Frontend đang dựng giao diện Tham quan ảo 360° và các trang chi tiết góc trường, tài liệu này sẽ giải thích mọi thứ một cách dễ hiểu và trực quan nhất.
-
----
-
-## 1. Mục đích module
-
-Module Địa điểm là "linh hồn" không gian của trang web kỷ niệm 40 năm, phục vụ 3 trải nghiệm chính:
-
-1. **Gợi nhớ 11 góc trường thân thương:** Cung cấp thông tin, ý nghĩa và cảm xúc về 11 địa điểm gắn liền với bao thế hệ học sinh NCT (từ Cổng trường, Sân trường, Căn tin, Ghế đá bồn cây, đến Phòng giám thị, Phòng y tế, Sân bóng rổ...).
-2. **Tham quan trường ảo 360° (Virtual Tour):** Giúp các cựu học sinh đang ở xa (hoặc định cư nước ngoài) có thể "bước đi" trong khuôn viên trường bằng ảnh toàn cảnh 360°. Trên mỗi bức ảnh 360° có gắn sẵn các **điểm chuyển cảnh (Hotspots)**: người dùng chỉ cần bấm vào mũi tên là bước sang góc trường kế bên.
-3. **So sánh ký ức Xưa & Nay:** Mỗi địa điểm lưu trữ kho ảnh tư liệu được chia rõ ràng thành 2 giai đoạn: **Ảnh xưa (`old`)** kèm năm chụp (ví dụ năm 1990, 1995...) và **Ảnh nay (`current`)** để người xem thấy được sự đổi thay và phát triển của trường qua 4 thập kỷ.
+> **Dự án**: Website Kỷ niệm 40 năm THPT Nguyễn Công Trứ (`Website_NCT_40Years`)  
+> **Module**: `locations` | **Trạng thái**: Hoạt động ổn định  
+> **Nền tảng**: Node.js (ES Modules) • Express 5 • PostgreSQL 16+
 
 ---
 
-## 2. Cấu trúc thư mục & nhiệm vụ từng file
+## 1. Mục Tiêu & Phạm Vi Nghiệp Vụ
 
-Toàn bộ mã nguồn nằm tại thư mục `backend/src/modules/locations/`:
+Module `locations` quản lý toàn bộ dữ liệu không gian, hình ảnh tư liệu và tọa độ điều hướng ảo của trường:
+1. **Không gian trường học (Campus Spaces Library)**: Quản lý danh mục các địa điểm thuộc khuôn viên trường với siêu dữ liệu (tên, slug, phân loại danh mục, mô tả, trạng thái hoạt động).
+2. **Tham quan thực tế ảo 360° (Virtual Tour)**: Cung cấp ảnh toàn cảnh equirectangular (`panorama_url`) và các điểm neo chuyển cảnh liên không gian (`location_links`) theo tọa độ radian (`yaw`, `pitch`).
+3. **Kho tư liệu Xưa & Nay (Past vs. Present Photos)**: Quản lý bộ sưu tập ảnh phân kỳ lịch sử (`old` kèm năm chụp) và hiện đại (`current`).
+4. **Tích hợp tương tác số**: Cung cấp thống kê tổng hợp số lượt check-in, lượt thích, bài viết kỷ niệm và trạng thái cá nhân của người dùng đang đăng nhập.
 
-```
-backend/src/
-├── app.js                                  # Đăng ký route /api/locations
-├── modules/
-│   └── locations/
-│       ├── locations.schema.js             # Kiểm tra dữ liệu thêm/sửa địa điểm, ảnh, liên kết 360° (Zod)
-│       ├── locations.service.js            # Truy vấn SQL: tổng hợp lượt thích/checkin, gom nhóm ảnh xưa-nay, lấy hotspots
-│       ├── locations.controller.js         # Tiếp nhận request, gọi service, trả JSON về client
-│       ├── locations.routes.js             # Khai báo đường dẫn URL và phân quyền (Admin)
-│       └── locations.md                    # Bản tóm tắt nhanh của module
-└── db/
-    ├── schema.sql                          # Khởi tạo bảng locations, location_photos, location_links
-    └── seed.sql                            # Dữ liệu mẫu 11 địa điểm & liên kết chuyển cảnh 360°
+---
+
+## 2. Cấu Trúc Mã Nguồn
+
+```text
+backend/src/modules/locations/
+├── locations.schema.js      # Khai báo Zod Schema xác thực dữ liệu đầu vào
+├── locations.service.js     # Tầng truy vấn cơ sở dữ liệu và xử lý nghiệp vụ
+├── locations.controller.js  # Tầng xử lý HTTP request/response
+└── locations.routes.js      # Định tuyến REST API và middleware phân quyền
 ```
 
-### Phân công trách nhiệm rõ ràng:
-- **`locations.routes.js`**: Định nghĩa URL. Các route xem thông tin thì mở công khai cho tất cả mọi người; các route thêm/sửa/xóa địa điểm hay nạp ảnh thì bắt buộc phải có quyền Admin (`requireAdmin`).
-- **`locations.schema.js`**: Kiểm tra dữ liệu đầu vào (tên không được rỗng, slug hợp lệ, loại ảnh phải là `old` hoặc `current`, tọa độ góc nhìn `yaw`, `pitch` hợp lệ).
-- **`locations.service.js`**: Viết các câu lệnh SQL tối ưu. Thay vì gọi nhiều truy vấn con, service dùng câu lệnh tổng hợp để đếm cùng lúc số lượt check-in, số lượt thích, số ảnh và tự động phân loại ảnh xưa/nay thành 2 mảng riêng biệt cho Frontend dễ dùng.
-- **`locations.controller.js`**: Nhận tham số từ URL (`id` hoặc `slug`), gọi service và trả mã HTTP tương ứng (200, 201, 404).
+### Phân công trách nhiệm:
+- **`locations.schema.js`**: Kiểm tra định dạng `identifier` (số nguyên dương hoặc regex slug), các trường bắt buộc khi tạo/sửa địa điểm, schema ảnh (`kind in ('old', 'current')`, `year`), và schema liên kết hotspot (`yaw`, `pitch` dạng số thực).
+- **`locations.service.js`**: Truy vấn từ view `v_locations_detailed`, xử lý hàm `resolveLocation()` hỗ trợ cả ID lẫn Slug, gom nhóm mảng ảnh `photos` (`old`, `current`, `all`), và trích xuất danh sách liên kết `links`.
+- **`locations.controller.js`**: Đọc `req.validated_query`, `req.params`, kiểm tra quyền hạn và trả về dữ liệu chuẩn hóa.
+- **`locations.routes.js`**: Phân tách rõ ràng giữa Public Endpoints (xem danh sách, xem chi tiết) và Admin Endpoints (`requireAuth`, `requireAdmin`).
 
 ---
 
-## 3. Danh sách 11 góc trường đã được nạp sẵn trong hệ thống
+## 3. Danh Mục Địa Điểm Chuẩn (Catalog Reference)
 
-Dưới đây là 11 góc trường đặc trưng đã được định danh bằng mã `slug` chuẩn trong CSDL (`backend/db/seed.sql`):
-
-| STT | Tên địa điểm | Mã định danh (`slug`) | Cảm xúc & Kỷ niệm gửi gắm |
-|:---:|---|---|---|
-| 1 | **Cổng trường** | `cong-truong` | Nơi mở đầu và khép lại bao kỷ niệm thanh xuân của học sinh NCT |
-| 2 | **Sân trường** | `san-truong` | Nơi chào cờ trang nghiêm đầu tuần và những giờ ra chơi rộn rã tiếng cười |
-| 3 | **Căn tin** | `can-tin` | Thiên đường ăn vặt, trà sữa và những bữa trưa rôm rả bạn bè |
-| 4 | **Bồn cây** | `bon-cay` | Ghế đá bồn cây rợp bóng mát, nơi ôn bài và tâm tình tuổi học trò |
-| 5 | **Phòng giám thị** | `phong-giam-thi` | Nơi rèn luyện nề nếp, kỷ luật và lưu giữ những kỷ niệm "thót tim" nhưng đầy yêu thương của tuổi học trò |
-| 6 | **Lớp học** | `lop-hoc` | Bảng đen, phấn trắng, dãy bàn thân thương và những bài giảng tâm huyết |
-| 7 | **Hành lang** | `hanh-lang` | Những bước chân vội vã trước giờ trống và ánh nhìn lướt qua lớp bên cạnh |
-| 8 | **Phòng y tế** | `phong-y-te` | Nơi nghỉ ngơi ấm áp và sự chăm sóc ân cần của các cô y tế |
-| 9 | **Sân bóng rổ** | `san-bong-ro` | Nơi cháy hết mình với đam mê thể thao và những tiếng reo hò cổ vũ |
-| 10 | **Sân bóng chuyền** | `san-bong-chuyen` | Những trận giao lưu sôi nổi giữa các khóa lớp trong các hội thao trường |
-| 11 | **Sân cầu lông** | `san-cau-long` | Tiếng cười và những đường cầu kịch tính sau giờ tan học |
-
----
-
-## 4. Dữ liệu bảng CSDL & Mối liên kết
-
-Hệ thống sử dụng 3 bảng liên kết chặt chẽ với nhau:
-
-1. **`locations`**: Lưu thông tin cốt lõi (tên, slug URL, mô tả, đường dẫn ảnh toàn cảnh `panorama_url`).
-2. **`location_photos`**: Lưu các ảnh tư liệu chụp góc trường đó:
-   - Cột `kind`: Chỉ nhận `'old'` (ảnh ngày xưa) hoặc `'current'` (ảnh ngày nay).
-   - Cột `year`: Năm chụp (ví dụ `1995`) để người xem biết bức ảnh này thuộc giai đoạn nào.
-3. **`location_links`**: Lưu các điểm chuyển cảnh 360° (Hotspots):
-   - `from_location_id` ➔ `to_location_id`.
-   - `yaw`, `pitch`: Tọa độ góc xoay ngang và góc nghiêng trên quả cầu 360° để trình duyệt vẽ đúng vị trí mũi tên điều hướng.
-   - Khi xóa 1 địa điểm, các ảnh và liên kết liên quan sẽ tự động bị xóa theo nhờ ràng buộc `ON DELETE CASCADE`.
+| ID | Slug Định Danh | Tên Địa Điểm | Danh Mục (`category`) | Mô Tả Ý Nghĩa |
+|:---:|---|---|---|---|
+| 1 | `cong-truong` | Cổng trường | `community` | Lối vào chính, không gian gắn liền với các thế hệ học sinh |
+| 2 | `san-truong` | Sân trường | `community` | Khu vực trung tâm tổ chức lễ chào cờ và hoạt động tập thể |
+| 3 | `can-tin` | Căn tin | `facility` | Khu dịch vụ ẩm thực và sinh hoạt ngoại khóa |
+| 4 | `bon-cay` | Bồn cây & Ghế đá | `community` | Không gian sinh hoạt ngoài trời dưới tán cây râm mát |
+| 5 | `phong-giam-thi` | Phòng giám thị | `admin` | Khu quản lý kỷ luật và nề nếp học sinh |
+| 6 | `lop-hoc` | Lớp học | `academic` | Không gian học tập chính khóa |
+| 7 | `hanh-lang` | Hành lang | `community` | Lối kết nối giữa các phòng học |
+| 8 | `phong-y-te` | Phòng y tế | `facility` | Khu chăm sóc sức khỏe học đường |
+| 9 | `san-bong-ro` | Sân bóng rổ | `sports` | Không gian thể thao rèn luyện thể chất |
+| 10 | `san-bong-chuyen` | Sân bóng chuyền | `sports` | Khu thể thao phong trào |
+| 11 | `san-cau-long` | Sân cầu lông | `sports` | Sân tập luyện sau giờ học |
+| 12 | `thu-vien` | Thư viện | `facility` | Trung tâm học liệu, sách và nghiên cứu |
 
 ---
 
-## 5. Danh sách các API chi tiết
+## 4. Thiết Kế Cơ Sở Dữ Liệu
 
-### 5.1. Lấy danh sách toàn bộ địa điểm (Trang chủ / Danh mục)
-Dùng để vẽ danh sách các góc trường ở Trang chủ hoặc thanh chuyển nhanh địa điểm.
-- **Method:** `GET`
-- **URL:** `/api/locations`
-- **Header:** Gửi kèm token nếu có (để biết mình đã like hay check-in chưa).
-- **Kết quả trả về (`200 OK`):** Mảng 11 địa điểm kèm số liệu thống kê đầy đủ:
-```json
-[
+```sql
+CREATE TABLE IF NOT EXISTS locations (
+  id            SERIAL PRIMARY KEY,
+  slug          TEXT NOT NULL UNIQUE,
+  name          TEXT NOT NULL,
+  description   TEXT,
+  panorama_url  TEXT,
+  category      TEXT NOT NULL DEFAULT 'general'
+                CHECK (category IN ('academic', 'sports', 'facility', 'admin', 'community', 'general')),
+  thumbnail_url TEXT,
+  is_active     BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order    INT NOT NULL DEFAULT 0,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS location_photos (
+  id            SERIAL PRIMARY KEY,
+  location_id   INT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+  url           TEXT NOT NULL,
+  kind          TEXT NOT NULL CHECK (kind IN ('old', 'current')),
+  year          INT
+);
+
+CREATE TABLE IF NOT EXISTS location_links (
+  id               SERIAL PRIMARY KEY,
+  from_location_id INT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+  to_location_id   INT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+  yaw              DOUBLE PRECISION NOT NULL,
+  pitch            DOUBLE PRECISION NOT NULL,
+  UNIQUE (from_location_id, to_location_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_locations_category ON locations(category);
+CREATE INDEX IF NOT EXISTS idx_locations_active_sort ON locations(is_active, sort_order ASC);
+CREATE INDEX IF NOT EXISTS idx_location_photos_location_kind ON location_photos(location_id, kind);
+CREATE INDEX IF NOT EXISTS idx_location_links_from_location_id ON location_links(from_location_id);
+```
+
+---
+
+## 5. Danh Sách API Endpoints
+
+### 5.1. Danh Sách Toàn Bộ Địa Điểm
+* **Endpoint**: `GET /api/locations`
+* **Xác thực**: Tùy chọn (`optionalAuth`)
+* **Headers**: `Authorization: Bearer <TOKEN>` (tùy chọn)
+* **Response (HTTP 200 OK)**:
+  ```json
+  [
+    {
+      "id": 2,
+      "slug": "san-truong",
+      "name": "Sân trường",
+      "description": "Nơi diễn ra các buổi chào cờ trang nghiêm...",
+      "panorama_url": "/panos/san-truong.jpg",
+      "category": "community",
+      "thumbnail_url": "https://...",
+      "is_active": true,
+      "sort_order": 2,
+      "checkin_count": 65,
+      "like_count": 120,
+      "photo_count": 8,
+      "memory_count": 30,
+      "has_checked_in": true,
+      "has_liked": false
+    }
+  ]
+  ```
+
+---
+
+### 5.2. Chi Tiết Địa Điểm & Dữ Liệu Virtual Tour 360°
+* **Endpoint**: `GET /api/locations/:identifier`
+* **Tham số URL (`:identifier`)**: Số nguyên ID hoặc chuỗi slug (ví dụ: `san-truong`, `2`).
+* **Xác thực**: Tùy chọn (`optionalAuth`)
+* **Response (HTTP 200 OK)**:
+  ```json
   {
     "id": 2,
     "slug": "san-truong",
     "name": "Sân trường",
     "description": "Nơi diễn ra các buổi chào cờ trang nghiêm...",
     "panorama_url": "/panos/san-truong.jpg",
-    "checkin_count": 65,
-    "like_count": 120,
-    "photo_count": 8,
-    "memory_count": 30,
-    "has_checked_in": true,
-    "has_liked": false
-  }
-]
-```
-
----
-
-### 5.2. Lấy chi tiết 1 địa điểm & Dữ liệu Tour 360°
-Dùng khi người dùng mở trang Tham quan ảo (`/tour/:slug`) hoặc xem bài viết về một góc trường.
-- **Method:** `GET`
-- **URL:** `/api/locations/:identifier` (ví dụ: `/api/locations/san-truong` hoặc `/api/locations/2`)
-- **Kết quả trả về (`200 OK`):**
-```json
-{
-  "id": 2,
-  "slug": "san-truong",
-  "name": "Sân trường",
-  "description": "Nơi diễn ra các buổi chào cờ trang nghiêm và những giờ ra chơi rộn rã...",
-  "panorama_url": "/panos/san-truong.jpg",
-  "stats": {
-    "checkin_count": 65,
-    "like_count": 120,
-    "memory_count": 30
-  },
-  "userStatus": {
-    "hasCheckedIn": true,
-    "hasLiked": false
-  },
-  "photos": {
-    "all": [...],
-    "old": [
-      { "id": 1, "url": "https://.../san-truong-1995.jpg", "kind": "old", "year": 1995 }
-    ],
-    "current": [
-      { "id": 2, "url": "https://.../san-truong-2026.jpg", "kind": "current", "year": 2026 }
-    ]
-  },
-  "links": [
-    {
-      "id": 1,
-      "yaw": 3.14,
-      "pitch": 0.0,
-      "to_id": 1,
-      "to_slug": "cong-truong",
-      "to_name": "Cổng trường"
+    "category": "community",
+    "thumbnail_url": "https://...",
+    "stats": {
+      "checkin_count": 65,
+      "like_count": 120,
+      "photo_count": 8,
+      "memory_count": 30
     },
-    {
-      "id": 3,
-      "yaw": 1.57,
-      "pitch": 0.0,
-      "to_id": 3,
-      "to_slug": "can-tin",
-      "to_name": "Căn tin"
-    }
-  ]
-}
-```
+    "userStatus": {
+      "hasCheckedIn": true,
+      "hasLiked": false
+    },
+    "photos": {
+      "all": [...],
+      "old": [
+        { "id": 1, "url": "https://.../san-truong-1995.jpg", "kind": "old", "year": 1995 }
+      ],
+      "current": [
+        { "id": 2, "url": "https://.../san-truong-2026.jpg", "kind": "current", "year": 2026 }
+      ]
+    },
+    "links": [
+      {
+        "id": 1,
+        "yaw": 3.14,
+        "pitch": 0.0,
+        "to_id": 1,
+        "to_slug": "cong-truong",
+        "to_name": "Cổng trường"
+      },
+      {
+        "id": 3,
+        "yaw": 1.57,
+        "pitch": 0.0,
+        "to_id": 3,
+        "to_slug": "can-tin",
+        "to_name": "Căn tin"
+      }
+    ]
+  }
+  ```
 
 ---
 
-### 5.3. Các API Quản trị dành cho Admin (Thêm / Sửa / Xóa)
-Tất cả các API này đều yêu cầu đăng nhập bằng tài khoản có `is_admin = true`:
+### 5.3. Nhóm Endpoint Quản Trị (Admin Only)
 
-- **Thêm địa điểm mới:** `POST /api/locations`  
-  *Body:* `{ "name": "...", "slug": "...", "description": "...", "panoramaUrl": "..." }`
-- **Sửa thông tin địa điểm:** `PATCH /api/locations/:identifier`  
-  *Body:* Gửi các trường cần sửa.
-- **Xóa địa điểm:** `DELETE /api/locations/:identifier`  
-  *Response 200:* `{ "message": "Xóa địa điểm thành công" }`
-- **Thêm ảnh tư liệu:** `POST /api/locations/:identifier/photos`  
-  *Body:* `{ "url": "https://...", "kind": "old", "year": 1995 }`
-- **Xóa ảnh tư liệu:** `DELETE /api/locations/photos/:photoId`
-- **Thêm điểm chuyển cảnh 360°:** `POST /api/locations/:identifier/links`  
-  *Body:* `{ "toLocationId": 3, "yaw": 1.57, "pitch": 0.0 }`
-- **Xóa điểm chuyển cảnh:** `DELETE /api/locations/links/:linkId`
+Tất cả các route yêu cầu Bearer Token với thuộc tính tài khoản `is_admin = TRUE`:
+
+| Method | Endpoint | Yêu Cầu Payload | Mô Tả |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/locations` | `{ name, slug, description, panoramaUrl, category, thumbnailUrl }` | Khởi tạo địa điểm mới |
+| `PATCH` | `/api/locations/:identifier` | Các trường cần cập nhật | Sửa đổi thông tin địa điểm |
+| `DELETE`| `/api/locations/:identifier` | Không | Xóa địa điểm khỏi CSDL |
+| `POST` | `/api/locations/:identifier/photos` | `{ url, kind, year }` | Bổ sung ảnh tư liệu xưa / nay |
+| `DELETE`| `/api/locations/photos/:photoId` | Không | Xóa ảnh tư liệu |
+| `POST` | `/api/locations/:identifier/links` | `{ toLocationId, yaw, pitch }` | Thêm điểm chuyển cảnh 360° |
+| `DELETE`| `/api/locations/links/:linkId` | Không | Xóa điểm chuyển cảnh 360° |
 
 ---
 
-## 6. Hướng dẫn test nhanh bằng cURL
-
-Bạn mở Terminal và kiểm tra kết quả ngay lập tức:
+## 6. Mẫu Lệnh Kiểm Thử Kỹ Thuật (cURL)
 
 ```bash
-# 1. Lấy danh sách 11 địa điểm kèm số liệu tương tác
-curl http://localhost:3000/api/locations
+# 1. Truy vấn danh sách địa điểm công khai
+curl -X GET http://localhost:3000/api/locations
 
-# 2. Xem chi tiết Sân trường bằng slug (thấy cả ảnh xưa-nay và các hotspot 360°)
-curl http://localhost:3000/api/locations/san-truong
+# 2. Truy vấn chi tiết địa điểm theo slug kèm token xác thực
+curl -X GET http://localhost:3000/api/locations/san-truong \
+  -H "Authorization: Bearer <TOKEN>"
 
-# 3. Xem bằng ID số
-curl http://localhost:3000/api/locations/2
-
-# 4. Xem chi tiết có kèm Token (để kiểm tra trường has_checked_in và has_liked)
-curl http://localhost:3000/api/locations/san-truong \
-  -H "Authorization: Bearer TOKEN"
+# 3. Tạo mới địa điểm (Quyền Admin)
+curl -X POST http://localhost:3000/api/locations \
+  -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Nhà Thi Đấu Đa Năng",
+    "slug": "nha-thi-dau",
+    "description": "Khu liên hợp thể thao hiện đại",
+    "category": "sports",
+    "panoramaUrl": "/panos/nha-thi-dau.jpg"
+  }'
 ```
 
 ---
 
-## 7. Gợi ý cho Frontend
+## 7. Tiêu Chuẩn Tích Hợp Frontend
 
-1. **Dựng Trình xem ảnh 360° (`TourPage.jsx`):**
-   - Bạn có thể dùng thư viện `@photo-sphere-viewer/core` kết hợp `@photo-sphere-viewer/markers-plugin` (hoặc Pannellum / Marzipano).
-   - Khi vào trang `/tour/:slug`, gọi `GET /api/locations/:slug` để lấy `panorama_url` nạp vào viewer.
-   - Duyệt qua mảng `links` để vẽ các nút bấm mũi tên chuyển cảnh dựa trên tọa độ `{ yaw: link.yaw, pitch: link.pitch }`. Khi người dùng click vào mũi tên, bạn chỉ việc gọi `navigate('/tour/' + link.to_slug)`.
-2. **Hiển thị Kho ảnh Xưa & Nay:**
-   - Dữ liệu trả về đã được gom nhóm sẵn thành `photos.old` và `photos.current`. Bạn chỉ việc làm 2 tab đơn giản hoặc thanh kéo so sánh (Before/After Slider) là giao diện sẽ cực kỳ ấn tượng.
-3. **Thanh trạng thái & Nút tương tác:**
-   - Dùng `userStatus.hasCheckedIn` để đổi màu nút Check-in và `userStatus.hasLiked` để đổi màu nút Trái tim ngay trên màn hình tham quan.
+1. **Khởi Tạo PhotoSphereViewer (`TourPage.jsx`)**:
+   - Quản trị một instance duy nhất của `Viewer` qua `useRef`.
+   - Khi chuyển đổi điểm tham quan, sử dụng phương thức `viewer.setPanorama(newUrl)` kết hợp hiệu ứng chuyển cảnh mượt thay vì hủy và tái tạo WebGL Canvas context.
+2. **Vẽ Điểm Neo Chuyển Cảnh (Hotspots)**:
+   - Ánh xạ mảng `links` vào `MarkersPlugin` với tọa độ radian `{ yaw: link.yaw, pitch: link.pitch }`.
+3. **So Sánh Ảnh Xưa & Nay**:
+   - Sử dụng dữ liệu phân nhóm sẵn `photos.old` và `photos.current` cho các component so sánh hình ảnh (Image Comparison Slider).

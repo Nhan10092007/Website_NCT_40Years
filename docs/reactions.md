@@ -1,238 +1,257 @@
-# Phần Reactions: Thả Tim & Bày Tỏ Tình Cảm (Địa Điểm & Kỷ Niệm)
+# Đặc Tả Kỹ Thuật Module Reactions (Yêu Thích & Tương Tác)
 
-Chào anh em! Đây là tài liệu hướng dẫn toàn bộ logic của module **Yêu thích / Thả tim (Reactions)** trong backend website kỷ niệm 40 năm NCT (Express, ES Modules, PostgreSQL) do Khang Lê phụ trách.
-
-Tài liệu này được viết theo phong cách gần gũi, thực chiến để bất kỳ ai vào sau đọc là hiểu ngay cách nút Thả tim hoạt động ngầm dưới database và cách Frontend gọi API sao cho mượt mà nhất.
-
----
-
-## 1. Tính năng này sinh ra để làm gì?
-
-Trong một trang web kỷ niệm 40 năm trường, cảm xúc và sự hoài niệm là điều quan trọng nhất:
-1. **Thả tim góc trường quen thuộc:** Học sinh, cựu học sinh hay thầy cô có thể thả tim vào những nơi mình yêu mến nhất (ví dụ: thả tim cho Căn tin, Ghế đá bồn cây hay Sân bóng rổ).
-2. **Thả tim bài viết kỷ niệm (`memories`):** Khi đọc những câu chuyện xúc động hay ngắm những bức ảnh xưa của các cựu học sinh đăng lên, người xem có thể thả tim để bày tỏ sự đồng cảm.
-3. **Xem lại những góc trường mình từng yêu thích:** Giúp người dùng có một trang lưu trữ danh sách những địa điểm và bài viết mà mình đã từng thả tim.
-4. **Bảng xếp hạng góc trường được yêu thích nhất:** Thống kê xem trong 11 địa điểm thì nơi nào nhận được nhiều tình cảm của các thế hệ học sinh nhất.
+> **Dự án**: Website Kỷ niệm 40 năm THPT Nguyễn Công Trứ (`Website_NCT_40Years`)  
+> **Module**: `reactions` | **Trạng thái**: Hoạt động ổn định  
+> **Nền tảng**: Node.js (ES Modules) • Express 5 • PostgreSQL 16+
 
 ---
 
-## 2. Cấu trúc thư mục & nhiệm vụ từng file
+## 1. Mục Tiêu & Phạm Vi Nghiệp Vụ
 
-Code của module nằm tại `backend/src/modules/reactions/`:
+Module `reactions` quản lý trạng thái tương tác yêu thích (Like / Unlike) của người dùng đối với hai thực thể chính:
+1. **Địa điểm khuôn viên trường (`locations`)**: Ghi nhận sự quan tâm của học sinh, cựu học sinh và giáo viên đối với từng không gian trong trường.
+2. **Bài viết kỷ niệm (`memories`)**: Bày tỏ sự đồng cảm đối với các câu chuyện và tư liệu do cựu học sinh chia sẻ.
+3. **Bảng xếp hạng (`leaderboards`)**: Tổng hợp các không gian trường học nhận được nhiều lượt tương tác nhất.
+4. **Hồ sơ cá nhân (`user profile`)**: Cung cấp danh sách các địa điểm và bài viết mà người dùng đã đánh dấu yêu thích.
 
-```
-backend/src/
-├── app.js                                  # Đăng ký route /api/reactions
-├── modules/
-│   └── reactions/
-│       ├── reactions.schema.js             # Kiểm tra dữ liệu đầu vào (Zod)
-│       ├── reactions.service.js            # Viết SQL xử lý toggle like, đếm số lượt thích, lập bảng xếp hạng
-│       ├── reactions.controller.js         # Tiếp nhận request từ client, gọi service, trả JSON về
-│       ├── reactions.routes.js             # Định nghĩa các URL và gắn middleware bảo vệ
-│       └── reactions.md                    # Bản tóm tắt nhanh của module
-└── db/
-    └── schema.sql                          # Bảng location_likes và memory_likes
+---
+
+## 2. Kiến Trúc & Cấu Trúc Mã Nguồn
+
+Module tuân thủ cấu trúc 4 tầng chuẩn (`backend/src/modules/reactions/`):
+
+```text
+backend/src/modules/reactions/
+├── reactions.schema.js      # Khai báo Zod Schema xác thực params & query
+├── reactions.service.js     # Tầng nghiệp vụ & truy vấn cơ sở dữ liệu (PostgreSQL)
+├── reactions.controller.js  # Tầng điều hướng HTTP request và response
+└── reactions.routes.js      # Định tuyến REST API và gắn middleware
 ```
 
-### Cách phân chia công việc:
-- **`reactions.routes.js`**: Định nghĩa các endpoint. Các thao tác thả tim cần đăng nhập (`requireAuth`), còn việc xem số lượt thích hay bảng xếp hạng thì công khai cho mọi người.
-- **`reactions.schema.js`**: Người gác cổng: Đảm bảo tham số `:identifier` hoặc `:id` đúng định dạng, các tham số phân trang `page` và `limit` không bị nhập số âm.
-- **`reactions.service.js`**: Nơi xử lý logic thông minh: Tự động đảo trạng thái thích/bỏ thích, chống spam và đếm lại số lượng tim tức thì.
-- **`reactions.controller.js`**: Lấy `req.user.id` từ token, chuyển cho service và trả response với thông điệp tiếng Việt thân thiện.
+### Phân công trách nhiệm:
+- **`reactions.schema.js`**: Xác thực kiểu dữ liệu `:identifier` (số nguyên `id` hoặc chuỗi `slug`), `:id` bài viết, kiểm tra số trang (`page`) và giới hạn bản ghi (`limit`).
+- **`reactions.service.js`**: Thực thi logic Toggle nguyên tử (1-touch), xử lý bắt lỗi vi phạm ràng buộc toàn vẹn PostgreSQL (`23505`), tính toán lại tổng số like.
+- **`reactions.controller.js`**: Trích xuất dữ liệu xác thực từ `req.validated_query`, `req.params`, lấy định danh `req.user.id` và trả kết quả JSON chuẩn hóa.
+- **`reactions.routes.js`**: Ánh xạ URL, phân quyền truy cập (`requireAuth` cho các thao tác ghi dữ liệu, `optionalAuth` cho truy vấn hiển thị).
 
 ---
 
-## 3. Luồng hoạt động của nút Like Toggle "1 chạm"
+## 3. Thiết Kế Cơ Sở Dữ Liệu & Ràng Buộc Toàn Vẹn
 
-Để người làm Frontend không phải viết code rườm rà (kiểm tra xem đã like chưa rồi mới quyết định gọi POST hay DELETE), backend cung cấp sẵn API **Toggle**:
-
-1. Người dùng bấm vào nút Trái tim trên web.
-2. Request gửi lên `POST /api/reactions/locations/:identifier/toggle` kèm token.
-3. Service kiểm tra xem trong database tài khoản này đã thả tim địa điểm đó chưa:
-   - **Nếu ĐÃ THẢ TIM:** Service chạy lệnh `DELETE` để bỏ thích.
-   - **Nếu CHƯA THẢ TIM:** Service chạy lệnh `INSERT` để ghi nhận lượt thích.
-4. Ngay lập tức, service đếm lại tổng số tim mới nhất của địa điểm đó và trả về:
-   ```json
-   {
-     "liked": true,
-     "count": 43
-   }
-   ```
-5. Phía giao diện chỉ cần nhận kết quả này để sáng đèn trái tim và cập nhật con số hiển thị. Mọi thứ diễn ra trong đúng 1 request duy nhất!
-
----
-
-## 4. Dữ liệu bảng CSDL & Cơ chế chống gian lận
-
-Hệ thống lưu trữ lượt thích trong 2 bảng riêng biệt ở `backend/db/schema.sql`:
+Hệ thống sử dụng hai bảng quan hệ độc lập trong `backend/db/schema.sql`:
 
 ```sql
 -- Lượt thích địa điểm
-CREATE TABLE location_likes (
-    location_id INT REFERENCES locations(id) ON DELETE CASCADE,
-    user_id INT REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    PRIMARY KEY (location_id, user_id)
+CREATE TABLE IF NOT EXISTS location_likes (
+    user_id     INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    location_id INT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, location_id)
 );
 
 -- Lượt thích bài viết kỷ niệm
-CREATE TABLE memory_likes (
-    memory_id INT REFERENCES memories(id) ON DELETE CASCADE,
-    user_id INT REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    PRIMARY KEY (memory_id, user_id)
+CREATE TABLE IF NOT EXISTS memory_likes (
+    user_id     INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    memory_id   INT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, memory_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_location_likes_location_id ON location_likes (location_id);
+CREATE INDEX IF NOT EXISTS idx_memory_likes_memory_id ON memory_likes (memory_id);
 ```
 
-### Tại sao thiết kế như thế này lại an toàn và tối ưu?
-- **Không bao giờ bị thích 2 lần:** Cặp `(location_id, user_id)` được đặt làm **Khóa chính (PRIMARY KEY)**. Một người dùng dù có cố tình bấm nhanh hay mở nhiều tab cũng không thể tăng 2 tim cho cùng 1 mục.
-- **Bắt mã lỗi Postgres `23505`:** Nếu xảy ra tình trạng bấm đồng thời (race condition), CSDL sẽ ném lỗi vi phạm khóa chính `23505`, service sẽ bắt lỗi này và trả về thông báo an toàn mà không làm sập server.
-- **Dọn dẹp tự động:** Có `ON DELETE CASCADE`, nếu xóa bài viết hoặc xóa người dùng, toàn bộ lượt tim liên quan tự động được dọn dẹp sạch sẽ.
+### Các nguyên tắc đảm bảo toàn vẹn:
+- **Chống trùng lặp (Idempotency)**: Khóa chính phức hợp `PRIMARY KEY (user_id, location_id)` và `PRIMARY KEY (user_id, memory_id)` ngăn chặn hoàn toàn việc một người dùng tạo nhiều lượt like cho cùng một mục.
+- **Xử lý Race-Condition**: Bắt mã lỗi PostgreSQL `23505` (Unique Violation) để trả về trạng thái nhất quán khi xảy ra xung đột đồng thời.
+- **Toàn vẹn quan hệ (Cascade Deletion)**: Khi người dùng hoặc địa điểm/bài viết bị xóa, toàn bộ bản ghi tương tác tương ứng tự động được giải phóng.
 
 ---
 
-## 5. Danh sách các API chi tiết
+## 4. Cơ Chế Xử Lý 1-Touch Atomic Toggle
 
-Mọi thông báo lỗi đều có dạng thống nhất: `{ "message": "Nội dung lỗi bằng tiếng Việt" }`.
+Nhằm tối ưu hóa số vòng mạng (Network Round-trips) và hỗ trợ giao diện Optimistic UI ở Client, backend cung cấp endpoint Toggle theo luồng thực thi:
 
-### 5.1. Thả tim / Bỏ tim Địa Điểm (Toggle Like)
-- **Method:** `POST`
-- **URL:** `/api/reactions/locations/:identifier/toggle`
-- **Header:** `Authorization: Bearer <TOKEN>`
-- **Tham số `:identifier`:** Bạn gửi ID số (`2`) hay Slug chữ (`san-truong`, `can-tin`...) đều được.
-- **Kết quả trả về (`200 OK` khi vừa Thích):**
-```json
-{
-  "message": "Đã thích địa điểm",
-  "locationId": 2,
-  "locationSlug": "san-truong",
-  "liked": true,
-  "count": 43
-}
-```
-- **Kết quả trả về (`200 OK` khi vừa Bỏ thích):**
-```json
-{
-  "message": "Đã bỏ thích địa điểm",
-  "locationId": 2,
-  "locationSlug": "san-truong",
-  "liked": false,
-  "count": 42
-}
-```
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Frontend Client
+    participant API as Reactions Router & Controller
+    participant Service as Reactions Service
+    participant DB as PostgreSQL Database
 
----
-
-### 5.2. Thả tim / Bỏ tim Bài viết kỷ niệm (Toggle Like)
-- **Method:** `POST`
-- **URL:** `/api/reactions/memories/:id/toggle`
-- **Header:** `Authorization: Bearer <TOKEN>`
-- **Kết quả trả về (`200 OK`):**
-```json
-{
-  "message": "Đã thích bài viết",
-  "memoryId": 1,
-  "liked": true,
-  "count": 15
-}
+    Client->>API: POST /api/reactions/locations/:identifier/toggle (Bearer Token)
+    API->>Service: toggleLocationLike(userId, identifier)
+    Service->>DB: resolveLocation(identifier) -> Lấy location_id
+    Service->>DB: DELETE FROM location_likes WHERE user_id=$1 AND location_id=$2 RETURNING 1
+    alt Đã tồn tại bản ghi (rowCount > 0)
+        Note over Service: Trạng thái: UNLIKE (liked = false)
+    else Chưa tồn tại (rowCount == 0)
+        Service->>DB: INSERT INTO location_likes (user_id, location_id) VALUES ($1, $2)
+        Note over Service: Trạng thái: LIKE (liked = true)
+    end
+    Service->>DB: SELECT COUNT(*)::int FROM location_likes WHERE location_id = $2
+    DB-->>Service: Tổng số like hiện thời (count)
+    Service-->>API: { liked: boolean, count: number }
+    API-->>Client: HTTP 200 OK
 ```
 
 ---
 
-### 5.3. Xem số lượt thích & Trạng thái cá nhân
-Dùng khi người dùng mở trang địa điểm hoặc xem thẻ bài viết để biết đã có bao nhiêu tim và mình đã thả tim chưa.
-- **Địa điểm:** `GET /api/reactions/locations/:identifier` (Gửi kèm token nếu có)
-- **Bài viết:** `GET /api/reactions/memories/:id` (Gửi kèm token nếu có)
-- **Kết quả trả về (`200 OK`):**
-```json
-{
-  "locationId": 2,
-  "locationSlug": "san-truong",
-  "likeCount": 42,
-  "hasLiked": true
-}
-```
+## 5. Danh Sách API Endpoints
 
----
-
-### 5.4. Xem danh sách những ai đã thích một địa điểm
-- **Method:** `GET`
-- **URL:** `/api/reactions/locations/:identifier/likers?page=1&limit=20`
-- **Kết quả trả về (`200 OK`):**
-```json
-{
-  "locationId": 2,
-  "pagination": { "page": 1, "limit": 20, "total": 42, "totalPages": 3 },
-  "likers": [
+### 5.1. Thao tác Toggle Địa Điểm (Toggle Location Like)
+* **Endpoint**: `POST /api/reactions/locations/:identifier/toggle`
+* **Xác thực**: Bắt buộc (`requireAuth`)
+* **Tham số URL (`:identifier`)**: Số nguyên `id` (ví dụ `2`) hoặc chuỗi `slug` (ví dụ `san-truong`).
+* **Headers**: `Authorization: Bearer <JWT_TOKEN>`
+* **Response (HTTP 200 OK)**:
+  * Khi thực hiện Like:
+    ```json
     {
-      "id": 1,
-      "displayName": "Nguyễn Văn An",
-      "role": "alumni",
-      "cohort": "2015-2018",
-      "className": "12A3",
-      "avatarUrl": null,
-      "likedAt": "2026-10-06T15:20:00.000Z"
+      "message": "Đã thích địa điểm",
+      "locationId": 2,
+      "locationSlug": "san-truong",
+      "liked": true,
+      "count": 43
     }
+    ```
+  * Khi thực hiện Unlike:
+    ```json
+    {
+      "message": "Đã bỏ thích địa điểm",
+      "locationId": 2,
+      "locationSlug": "san-truong",
+      "liked": false,
+      "count": 42
+    }
+    ```
+
+---
+
+### 5.2. Thao tác Toggle Bài Viết Kỷ Niệm (Toggle Memory Like)
+* **Endpoint**: `POST /api/reactions/memories/:id/toggle`
+* **Xác thực**: Bắt buộc (`requireAuth`)
+* **Tham số URL (`:id`)**: Số nguyên ID bài viết.
+* **Headers**: `Authorization: Bearer <JWT_TOKEN>`
+* **Response (HTTP 200 OK)**:
+  ```json
+  {
+    "message": "Đã thích bài viết",
+    "memoryId": 1,
+    "liked": true,
+    "count": 15
+  }
+  ```
+
+---
+
+### 5.3. Kiểm Tra Trạng Thái & Số Lượng Tương Tác
+* **Endpoints**:
+  * Địa điểm: `GET /api/reactions/locations/:identifier`
+  * Bài viết: `GET /api/reactions/memories/:id`
+* **Xác thực**: Tùy chọn (`optionalAuth` - nếu gửi kèm Bearer Token sẽ tính toán trường `hasLiked`).
+* **Response (HTTP 200 OK)**:
+  ```json
+  {
+    "locationId": 2,
+    "locationSlug": "san-truong",
+    "likeCount": 42,
+    "hasLiked": true
+  }
+  ```
+
+---
+
+### 5.4. Danh Sách Người Đã Thích Địa Điểm
+* **Endpoint**: `GET /api/reactions/locations/:identifier/likers`
+* **Xác thực**: Công khai
+* **Query Parameters**:
+  * `page` (number, mặc định `1`): Số thứ tự trang.
+  * `limit` (number, mặc định `20`, tối đa `50`): Số lượng bản ghi mỗi trang.
+* **Response (HTTP 200 OK)**:
+  ```json
+  {
+    "locationId": 2,
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 42,
+      "totalPages": 3
+    },
+    "likers": [
+      {
+        "id": 1,
+        "displayName": "Nguyễn Văn An",
+        "role": "alumni",
+        "cohort": "2015-2018",
+        "className": "12A3",
+        "avatarUrl": null,
+        "likedAt": "2026-10-06T15:20:00.000Z"
+      }
+    ]
+  }
+  ```
+
+---
+
+### 5.5. Bảng Xếp Hạng Địa Điểm Được Yêu Thích (Leaderboard)
+* **Endpoint**: `GET /api/reactions/locations/leaderboard`
+* **Xác thực**: Công khai
+* **Query Parameters**: `limit` (number, mặc định `10`, tối đa `50`).
+* **Response (HTTP 200 OK)**:
+  ```json
+  [
+    { "id": 2, "slug": "san-truong", "name": "Sân trường", "like_count": 85 },
+    { "id": 3, "slug": "can-tin", "name": "Căn tin", "like_count": 64 },
+    { "id": 4, "slug": "bon-cay", "name": "Bồn cây", "like_count": 52 }
   ]
-}
-```
+  ```
 
 ---
 
-### 5.5. Bảng xếp hạng góc trường được yêu thích nhất (Leaderboard)
-- **Method:** `GET`
-- **URL:** `/api/reactions/locations/leaderboard?limit=5`
-- **Kết quả trả về (`200 OK`):**
-```json
-[
-  { "id": 2, "slug": "san-truong", "name": "Sân trường", "like_count": 85 },
-  { "id": 3, "slug": "can-tin", "name": "Căn tin", "like_count": 64 },
-  { "id": 4, "slug": "bon-cay", "name": "Bồn cây", "like_count": 52 }
-]
-```
+### 5.6. Danh Sách Mục Đã Thích Của Bản Thân
+* **Endpoints**:
+  * Địa điểm cá nhân đã thích: `GET /api/reactions/me/locations`
+  * Bài viết cá nhân đã thích: `GET /api/reactions/me/memories`
+* **Xác thực**: Bắt buộc (`requireAuth`)
+* **Query Parameters**: `page` (number), `limit` (number).
+* **Response (HTTP 200 OK)**: Trả về danh sách dữ liệu kèm phân trang chuẩn hóa.
 
 ---
 
-### 5.6. Danh sách cá nhân: Những mục tôi đã từng thả tim
-Dùng để hiển thị trong trang cá nhân (`ProfilePage`) mục "Góc trường tôi yêu thích" và "Kỷ niệm tôi đã lưu":
-- **Địa điểm tôi đã thích:** `GET /api/reactions/me/locations` (Cần đăng nhập)
-- **Kỷ niệm tôi đã thích:** `GET /api/reactions/me/memories` (Cần đăng nhập)
-
----
-
-## 6. Hướng dẫn test nhanh bằng cURL
-
-Bạn mở Terminal và chạy thử các lệnh sau:
+## 6. Mẫu Lệnh Kiểm Thử Kỹ Thuật (cURL)
 
 ```bash
-# 1. Thử bấm Like Sân trường bằng slug (thay TOKEN)
+# 1. Toggle like địa điểm theo Slug
 curl -X POST http://localhost:3000/api/reactions/locations/san-truong/toggle \
-  -H "Authorization: Bearer TOKEN"
+  -H "Authorization: Bearer <TOKEN>"
 
-# 2. Xem số like Sân trường và kiểm tra hasLiked
-curl http://localhost:3000/api/reactions/locations/san-truong \
-  -H "Authorization: Bearer TOKEN"
+# 2. Truy vấn trạng thái like của cá nhân đối với địa điểm
+curl -X GET http://localhost:3000/api/reactions/locations/san-truong \
+  -H "Authorization: Bearer <TOKEN>"
 
-# 3. Xem danh sách những người đã thả tim Sân trường
-curl http://localhost:3000/api/reactions/locations/san-truong/likers
+# 3. Lấy danh sách thành viên đã like địa điểm
+curl -X GET "http://localhost:3000/api/reactions/locations/san-truong/likers?page=1&limit=10"
 
-# 4. Xem bảng xếp hạng các góc trường nhiều tim nhất
-curl http://localhost:3000/api/reactions/locations/leaderboard
+# 4. Lấy bảng xếp hạng địa điểm nhiều lượt thích nhất
+curl -X GET "http://localhost:3000/api/reactions/locations/leaderboard?limit=5"
 
-# 5. Xem danh sách các địa điểm cá nhân tôi đã thích
-curl http://localhost:3000/api/reactions/me/locations \
-  -H "Authorization: Bearer TOKEN"
+# 5. Lấy danh sách địa điểm cá nhân đã thích
+curl -X GET "http://localhost:3000/api/reactions/me/locations?page=1&limit=10" \
+  -H "Authorization: Bearer <TOKEN>"
 ```
 
 ---
 
-## 7. Gợi ý kinh nghiệm cho bạn làm Frontend (Rất quan trọng!)
+## 7. Tiêu Chuẩn Triển Khai Phía Client (Frontend Guidelines)
 
-1. **Dùng cơ chế Optimistic UI (Bấm là ăn ngay):**
-   - Khi người dùng click vào nút Trái tim (`LikeButton.jsx`), đừng bắt họ chờ mạng quay tròn.
-   - Hãy đổi màu trái tim sang màu đỏ ngay lập tức và tăng con số lên +1 (hoặc đổi xám và -1 nếu bỏ tim).
-   - Sau đó gửi request gọi API ngầm phía dưới. Nếu chẳng may mạng đứt hoặc token hết hạn, bạn chỉ cần rollback lại trạng thái cũ và hiện thông báo lỗi nhẹ. Người dùng sẽ cảm thấy trang web cực kỳ nhanh và mượt mà.
-2. **Xử lý khi chưa đăng nhập:**
-   - Khi người dùng chưa đăng nhập bấm vào nút Like, hãy kiểm tra token ở `localStorage`. Nếu chưa có, bật popup đăng nhập hoặc chuyển hướng sang `/login` thay vì để server báo lỗi `401`.
-3. **Chống spam click (Debounce/Throttle):**
-   - Mặc dù backend đã có khóa chính CSDL chống gian lận, ở Frontend bạn vẫn nên vô hiệu hóa nút bấm trong khoảng 300ms sau khi bấm để tránh gửi quá nhiều request thừa thãi lên server.
+1. **Optimistic UI Pattern**:
+   * Khi kích hoạt sự kiện click trên component `LikeButton`:
+     * Đổi ngay trạng thái visual (active/inactive) và cập nhật số lượng tức thời (`count ± 1`).
+     * Phát request bất đồng bộ đến endpoint `/toggle`.
+     * Trong trường hợp request thất bại (lỗi mạng hoặc mã `401`/`500`), thực hiện rollback trạng thái UI về giá trị ban đầu và hiển thị toast thông báo.
+2. **Kiểm Soát Tần Suất (Debouncing / Throttling)**:
+   * Áp dụng khóa nút tạm thời (disable state ~300ms) sau mỗi lần kích hoạt để hạn chế request liên tục.
+3. **Xử Lý Trạng Thái Xác Thực (Authentication Interceptor)**:
+   * Kiểm tra token trước khi gửi request toggle. Nếu chưa đăng nhập, mở modal điều hướng thay vì gửi request dẫn đến lỗi `401 Unauthorized`.
