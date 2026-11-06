@@ -77,11 +77,26 @@ export async function createComment(userId, memoryId, content) {
     const { rows } = await query(
       `INSERT INTO comments (memory_id, user_id, content)
        VALUES ($1, $2, $3)
-       RETURNING id, memory_id, user_id, content, created_at`,
+       RETURNING id`,
       [memoryId, userId, content]
     );
 
-    return rows[0];
+    const commentId = rows[0].id;
+    const fullRes = await query(
+      `SELECT
+         c.id,
+         c.memory_id,
+         c.user_id,
+         c.content,
+         c.created_at,
+         ${PUBLIC_USER_COLUMNS}
+       FROM comments c
+       JOIN users u ON u.id = c.user_id
+       WHERE c.id = $1`,
+      [commentId]
+    );
+
+    return fullRes.rows[0];
   } catch (err) {
     if (err.code === '23503') {
       throw new AppError('Bài viết hoặc người dùng không tồn tại', 404);

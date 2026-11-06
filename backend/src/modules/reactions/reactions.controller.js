@@ -134,7 +134,8 @@ export async function unlikeMemory(req, res, next) {
 export async function toggleMemory(req, res, next) {
   try {
     const memoryId = Number(req.params.id);
-    const result = await service.toggleMemoryLike(req.user.id, memoryId);
+    const type = req.body?.type || 'love';
+    const result = await service.toggleMemoryLike(req.user.id, memoryId, type);
     res.json({
       message: result.liked ? 'Đã thích bài viết' : 'Đã bỏ thích bài viết',
       ...result,

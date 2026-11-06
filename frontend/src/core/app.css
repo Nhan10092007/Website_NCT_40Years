@@ -1,0 +1,106 @@
+/* ============================================================
+ * NCT 40 — app shell + module styles (new for the module layout)
+ * Tokens
+ *   ink #2b2622 · paper #fffaf0 · cream #fbf6e9 · mint #7fd1b9
+ *   sun #f2c94c · red #d9433b · teal #2f6b5c · navy #1f2c5c
+ *   type: Tiny5 Duo (headings, labels) / League Spartan (text)
+ * ============================================================ */
+html,body{height:100%}
+body{background:#e9efe2}
+[hidden]{display:none!important}
+.wrap{width:100%;max-width:1560px;margin:0 auto;padding:0 16px;box-sizing:border-box}
+
+/* ---------- top bar (app shell) ---------- */
+.topbar{position:sticky;top:0;z-index:40;background:#e9efe2;padding:6px 0}
+.topbar .bar-in{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:6px 10px}
+.nav{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 auto}
+.nav a{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:4px 12px;border:2px solid transparent;border-radius:4px;font-weight:800;font-size:14px;color:#2b2622;text-decoration:none}
+.nav a:hover{background:#f3ead2}
+.nav a[aria-current="page"]{background:#2b2622;color:#fffaf0}
+.nav a svg{flex:none}
+.search-box{display:flex;align-items:center;gap:6px;flex:0 1 340px;min-width:200px;position:relative}
+.search-box .inp{min-height:38px;padding:6px 10px 6px 34px;font-size:14px;border-width:2px}
+.search-box svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none}
+.mock-badge{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:#2b2622;color:#f2c94c;padding:3px 6px;border-radius:3px}
+
+/* ---------- generic page scaffolding ---------- */
+.page{padding:12px 0 48px}
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 0 16px}
+.page-head h1{margin:0;font-size:clamp(26px,3vw,36px);font-weight:700}
+.page-head p{margin:4px 0 0;color:#5c5247;font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:4px 12px;border:2px solid #2b2622;border-radius:999px;background:#fffaf0;font:700 13px/1 'League Spartan',sans-serif;color:#2b2622;cursor:pointer}
+.chip[aria-pressed="true"]{background:#2f6b5c;color:#fffaf0}
+.chip .ico{width:18px;height:18px}
+.card{background:#fffaf0;border:3px solid #2b2622;border-radius:6px;box-shadow:4px 4px 0 #2b2622;padding:16px}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media (max-width:980px){.grid-3,.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.grid-2,.grid-3,.grid-4{grid-template-columns:minmax(0,1fr)}}
+.empty{border:2px dashed #b9ad92;border-radius:6px;padding:18px;font-size:14px;color:#5c5247;text-align:center}
+.muted{color:#5c5247}
+.tbl-wrap{overflow-x:auto;border:2px solid #2b2622;border-radius:6px;background:#fff}
+table.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th,.tbl td{padding:10px 12px;border-bottom:1px solid #e3dccb;text-align:left;vertical-align:middle}
+.tbl th{font-family:'Tiny5 Duo','League Spartan',sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#5c5247;background:#f3ead2}
+.tbl tr:last-child td{border-bottom:0}
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:800;border:2px solid currentColor}
+.pill.ok{color:#2f6b30}.pill.wait{color:#9a5b00}.pill.off{color:#a8302a}
+
+/* ---------- memories: card extras (reactions + comments) ---------- */
+.mcard .acts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:0 14px 12px}
+.react{display:inline-flex;align-items:center;gap:4px;min-height:32px;padding:2px 8px;border:2px solid #2b2622;border-radius:999px;background:#fff;font:700 12px/1 'League Spartan',sans-serif;color:#2b2622;cursor:pointer}
+.react[aria-pressed="true"]{background:#f2c94c}
+.react svg{flex:none}
+.cmt-btn{margin-left:auto}
+.mcard .loc{display:inline-flex;align-items:center;gap:6px;margin:12px 14px 0;font-size:12px;font-weight:800;color:#2f6b5c}
+.mcard .loc .ico{width:18px;height:18px}
+
+/* ---------- comments ---------- */
+.cmts{display:flex;flex-direction:column;gap:10px}
+.cmt{display:flex;gap:10px;align-items:flex-start}
+.cmt .av{width:36px;height:36px;flex:none;border:2px solid #2b2622;border-radius:4px;background-color:#e9efe2;background-position:0 0}
+.cmt .bub{flex:1;background:#fff;border:2px solid #2b2622;border-radius:6px;padding:8px 10px;font-size:14px;line-height:1.5}
+.cmt .bub b{display:block;font-size:13px}
+.cmt .bub small{color:#5c5247;font-size:12px}
+
+/* ---------- rankings ---------- */
+.rank-row{display:grid;grid-template-columns:44px 52px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid #e3dccb;background:#fff}
+.rank-row:last-child{border-bottom:0}
+.rank-no{font-family:'Tiny5 Duo',monospace;font-size:22px;text-align:center}
+.rank-row.top1 .rank-no{color:#c8952a}.rank-row.top2 .rank-no{color:#7d8790}.rank-row.top3 .rank-no{color:#a8643a}
+.rank-av{width:48px;height:48px;border:2px solid #2b2622;border-radius:4px;background-color:#e9efe2;background-position:0 0}
+.rank-score{font-family:'Tiny5 Duo',monospace;font-size:20px;white-space:nowrap}
+.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end;margin-bottom:16px}
+.podium .pod{text-align:center;padding:12px;border:3px solid #2b2622;border-radius:6px;background:#fffaf0}
+.podium .pod .rank-av{width:64px;height:64px;margin:0 auto 8px}
+.podium .p1{background:#f2c94c;min-height:190px}.podium .p2{min-height:160px}.podium .p3{min-height:140px}
+
+/* ---------- users / profile ---------- */
+.profile{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.profile{grid-template-columns:minmax(0,1fr)}}
+.stat{display:flex;flex-direction:column;gap:2px;padding:12px;border:2px solid #2b2622;border-radius:6px;background:#fff}
+.stat b{font-family:'Tiny5 Duo',monospace;font-size:28px;font-weight:700}
+.stat span{font-size:12px;color:#5c5247;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.big-av{width:128px;height:128px;border:3px solid #2b2622;border-radius:6px;background-color:#e9efe2;background-position:0 0;margin:0 auto}
+
+/* ---------- admin ---------- */
+.admin{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.admin{grid-template-columns:minmax(0,1fr)}}
+.admin-nav{display:flex;flex-direction:column;gap:6px}
+.admin-nav button{justify-content:flex-start}
+.admin-nav button[aria-current="true"]{background:#2b2622;color:#fffaf0}
+
+/* ---------- auth ---------- */
+.tabs{display:flex;border-bottom:3px solid #2b2622}
+.tabs button{flex:1;min-height:46px;border:0;background:#f3ead2;font:800 15px/1 'League Spartan',sans-serif;color:#2b2622;cursor:pointer}
+.tabs button[aria-selected="true"]{background:#d9433b;color:#fffaf0}
+
+/* ---------- modal ---------- */
+.modal-back{position:fixed;inset:0;background:rgba(43,38,34,.62);z-index:60;overflow-y:auto;padding:24px 16px;box-sizing:border-box;display:flex;align-items:flex-start;justify-content:center}
+.modal-back.center{align-items:center}
+.modal{width:100%;background:#fffaf0;border:3px solid #2b2622;border-radius:6px;box-shadow:6px 6px 0 #2b2622;overflow:hidden}
+.toast-host{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:#2b2622;color:#fffaf0;font-weight:700;font-size:14px;padding:10px 14px;border-radius:4px;max-width:86vw;text-align:center}
+@media (max-width:700px){.topbar{position:static}.search-box{flex:1 1 100%}}

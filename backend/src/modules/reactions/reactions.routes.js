@@ -6,6 +6,7 @@ import {
   locationIdentifierParamSchema,
   memoryIdParamSchema,
   paginationQuerySchema,
+  toggleMemoryReactionSchema,
 } from './reactions.schema.js';
 
 const router = Router();
@@ -104,6 +105,7 @@ router.post(
   '/memories/:id/toggle',
   requireAuth,
   validate(memoryIdParamSchema, 'params'),
+  validate(toggleMemoryReactionSchema, 'body'),
   controller.toggleMemory
 );
 

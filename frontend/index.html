@@ -1,13 +1,36 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chuyến tàu tiếp nối – 40 năm NCT</title>
+<link rel="icon" href="assets/img/logo-truong.png">
+<link rel="stylesheet" href="src/core/base.css">
+<link rel="stylesheet" href="src/core/app.css">
+</head>
+<body class="nct">
+<div id="app"></div>
+
+<!-- core -->
+<script src="src/core/config.js"></script>
+<script src="src/core/mock-data.js"></script>
+<script src="src/core/api.js"></script>
+<script src="src/core/ui.js"></script>
+<script src="src/core/sound.js"></script>
+
+<!-- modules (one folder per backend module) -->
+<script src="src/modules/auth/auth.js"></script>
+<script src="src/modules/users/users.js"></script>
+<script src="src/modules/locations/map.js"></script>
+<script src="src/modules/checkins/checkins.js"></script>
+<script src="src/modules/reactions/reactions.js"></script>
+<script src="src/modules/comments/comments.js"></script>
+<script src="src/modules/memories/memories.js"></script>
+<script src="src/modules/rankings/rankings.js"></script>
+<script src="src/modules/search/search.js"></script>
+<script src="src/modules/admin/admin.js"></script>
+
+<!-- router last: renders the current route -->
+<script src="src/core/router.js"></script>
+</body>
 </html>

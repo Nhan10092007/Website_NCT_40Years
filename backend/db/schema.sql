@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS location_likes (
 CREATE TABLE IF NOT EXISTS memory_likes (
   user_id       INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   memory_id     INT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+  type          VARCHAR(20) NOT NULL DEFAULT 'love',
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, memory_id)
 );

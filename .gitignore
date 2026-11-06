@@ -24,3 +24,7 @@ error.log
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# Legacy backups
+src_react_legacy/
+frontend/src_react_legacy/

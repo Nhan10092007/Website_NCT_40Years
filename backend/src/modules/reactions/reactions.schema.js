@@ -15,3 +15,7 @@ export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(10).optional(),
 });
+
+export const toggleMemoryReactionSchema = z.object({
+  type: z.enum(['love', 'miss', 'laugh', 'proud']).default('love').optional(),
+});

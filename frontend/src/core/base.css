@@ -1,0 +1,126 @@
+/* NCT 40 — base styles carried over from the approved prototype */
+@font-face{font-family:'Tiny5 Duo';src:url(../../assets/fonts/Tiny5Duo.woff2) format('woff2');font-weight:100 900;font-stretch:50% 200%;font-display:swap}
+@font-face{font-family:'League Spartan';src:url(../../assets/fonts/LeagueSpartan-Light.woff2) format('woff2');font-weight:300;font-display:swap}
+@font-face{font-family:'League Spartan';src:url(../../assets/fonts/LeagueSpartan-Regular.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'League Spartan';src:url(../../assets/fonts/LeagueSpartan-Medium.woff2) format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:'League Spartan';src:url(../../assets/fonts/LeagueSpartan-SemiBold.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:'League Spartan';src:url(../../assets/fonts/LeagueSpartan-Bold.woff2) format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'League Spartan';src:url(../../assets/fonts/LeagueSpartan-ExtraBold.woff2) format('woff2');font-weight:800;font-display:swap}
+@font-face{font-family:'League Spartan';src:url(../../assets/fonts/LeagueSpartan-Black.woff2) format('woff2');font-weight:900;font-display:swap}
+body{margin:0;background:#fbf6e9}
+a{color:#2f6fb0}a:hover{color:#1f4f84}
+.nct{font-family:'League Spartan',system-ui,sans-serif;color:#2b2622;-webkit-font-smoothing:antialiased}
+.pix{font-family:'Tiny5 Duo',ui-monospace,monospace;letter-spacing:.02em}
+.nct h1,.nct h2,.nct h3,.lbl{font-family:'Tiny5 Duo','League Spartan',sans-serif;letter-spacing:.01em}
+.pbox{background:#fffaf0;border:3px solid #2b2622;box-shadow:5px 5px 0 #2b2622;border-radius:4px}
+.btn{font:inherit;font-weight:800;font-size:15px;cursor:pointer;min-height:46px;padding:10px 18px;border:3px solid #2b2622;border-radius:4px;background:#f2c94c;color:#2b2622;box-shadow:3px 3px 0 #2b2622;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;box-sizing:border-box}
+.btn:hover{background:#f6d76e}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #2b2622}
+.btn.ghost{background:#fffaf0}.btn.ghost:hover{background:#f3ead2}
+.btn.mint{background:#7fd1b9}.btn.mint:hover{background:#97dcc7}
+.btn.red{background:#d9433b;color:#fff}.btn.red:hover{background:#e25a52}
+.btn.sm{min-height:44px;padding:6px 12px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.game:focus-visible,.mk:focus-visible,.upl:focus-within{outline:3px solid #2f6fb0;outline-offset:3px}
+.inp{font:inherit;font-size:16px;font-weight:600;color:#2b2622;background:#fff;border:3px solid #2b2622;border-radius:4px;padding:10px 12px;min-height:46px;box-sizing:border-box;width:100%}
+.inp:disabled{background:#f3ead2;color:#2b2622;opacity:1;cursor:not-allowed;-webkit-text-fill-color:#2b2622}
+.lbl{display:block;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#5c5247;margin-bottom:6px}
+.scenery{background-image:url(../../assets/img/landscape.png);background-repeat:repeat-x;background-size:640px 240px;background-position:0 100%;image-rendering:pixelated;animation:scrollL 16s linear infinite}
+.scenery.fast{animation-duration:1.6s}
+@keyframes scrollL{from{background-position:0 100%}to{background-position:-640px 100%}}
+@media (max-width:640px){.scenery{background-size:480px 180px;animation-name:scrollS}}
+@keyframes scrollS{from{background-position:0 100%}to{background-position:-480px 100%}}
+.pixelated{image-rendering:pixelated}
+.vid{display:block;width:100%;height:100%;object-fit:cover;animation:vidIn 1.2s ease-out both}
+.train.moving{animation:rumble .9s linear}
+@keyframes rumble{0%,100%{transform:translate(0,0)}15%{transform:translate(1px,1px)}35%{transform:translate(-1px,0)}55%{transform:translate(1px,-1px)}75%{transform:translate(-1px,1px)}}
+.pole{position:absolute;top:-6%;bottom:-6%;width:7%;left:115%;background:linear-gradient(90deg,#1d1a17,#4a4138 45%,#1d1a17);filter:blur(4px);opacity:0;pointer-events:none}
+.pole.p2{width:4%}
+.train.moving .pole{animation:pole .5s linear .2s both}
+.train.moving .pole.p2{animation-delay:.42s;animation-duration:.4s}
+@keyframes pole{0%{left:115%;opacity:.92}100%{left:-25%;opacity:.92}}
+.scene{transition:opacity .35s}
+.train.moving .scene{opacity:0}
+@keyframes vidIn{from{opacity:0}to{opacity:1}}
+.fadein{animation:fadeIn .7s ease-out both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg label{flex:1 1 90px;position:relative}
+.seg input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.seg .opt{display:flex;align-items:center;justify-content:center;height:46px;padding:0 10px;border:3px solid #2b2622;border-radius:4px;background:#fff;color:#2b2622;font-size:14px;font-weight:700;line-height:1.2;text-align:center;box-sizing:border-box;white-space:nowrap;position:relative;transition:background .15s,color .15s}
+.seg .opt.on{background:#2f6b5c;color:#fffaf0;box-shadow:inset 0 0 0 2px #f2c94c}
+.seg .opt .tick{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;background:#f2c94c;border:2px solid #2b2622;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+.seg input:focus-visible + .opt{outline:3px solid #2f6fb0;outline-offset:2px}
+.wall{columns:4 200px;column-gap:16px;padding-top:4px}
+.mcard{break-inside:avoid;display:block;width:100%;box-sizing:border-box;margin:0 0 16px;background:#fff;border:2px solid #2b2622;border-radius:6px;box-shadow:3px 3px 0 rgba(43,38,34,.18);overflow:hidden}
+.mcard .ph{display:block;width:100%;height:auto;background:#eee6d3;border-bottom:2px solid #2b2622}
+.mcard .txt{margin:0;padding:12px 14px 0;font-size:14px;line-height:1.6;color:#2b2622;text-align:justify;text-justify:inter-word;white-space:pre-wrap;word-break:break-word;hyphens:auto}
+.mcard .by{padding:10px 14px 12px;font-size:12px;color:#5c5247;display:flex;flex-direction:column;gap:2px;border-top:1px dashed #d8cdb4;margin-top:12px}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.clamp9{display:-webkit-box;-webkit-line-clamp:9;-webkit-box-orient:vertical;overflow:hidden}
+.more{font:700 13px/1 'League Spartan',sans-serif;color:#2f6fb0;background:none;border:0;padding:8px 0;min-height:32px;cursor:pointer;text-decoration:underline}
+.train{animation:sway 1.4s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:translateY(0)}50%{transform:translateY(1px)}}
+.floorfx{position:absolute;inset:0;background:#2b2622;pointer-events:none;animation:floorFx .7s ease-out both;z-index:6}
+@keyframes floorFx{0%{opacity:.85}100%{opacity:0}}
+.floorchip{position:absolute;left:2%;top:2%;z-index:5;background:#2b2622;color:#fffaf0;font:800 12px/1 'League Spartan',sans-serif;letter-spacing:.08em;padding:7px 10px;border-radius:3px;display:flex;gap:6px;align-items:center}
+.stairtag{position:absolute;transform:translate(-50%,-100%);z-index:4;background:#fffaf0;border:2px solid #2b2622;border-radius:3px;font:800 10px/1.1 'League Spartan',sans-serif;color:#2b2622;padding:3px 5px;white-space:nowrap;pointer-events:none;box-shadow:2px 2px 0 #2b2622}
+.bubble{position:relative;background:#fff;border:3px solid #2b2622;border-radius:6px;padding:14px 16px;font-size:18px;font-weight:800;line-height:1.4;box-shadow:3px 3px 0 #2b2622}
+.bubble:before{content:"";position:absolute;left:28px;bottom:-12px;border:6px solid transparent;border-top-color:#2b2622}
+.avatar{background-size:200% 400%;background-repeat:no-repeat;image-rendering:pixelated;transition:left .2s linear,top .2s linear}
+.av-m-y{background-image:url(../../assets/img/avatar-m_y.png)}
+.av-m-w{background-image:url(../../assets/img/avatar-m_w.png)}
+.av-m-b{background-image:url(../../assets/img/avatar-m_b.png)}
+.av-f-y{background-image:url(../../assets/img/avatar-f_y.png)}
+.av-f-w{background-image:url(../../assets/img/avatar-f_w.png)}
+.av-f-b{background-image:url(../../assets/img/avatar-f_b.png)}
+.nametag{background:#fff;border:2px solid #c8302a;border-radius:3px;width:240px;max-width:100%;color:#c8302a;box-sizing:border-box}
+.nt-top{display:flex;flex-direction:column;align-items:center;padding:2px 6px 1px;border-bottom:2px solid #c8302a;text-align:center}
+.nt-s{font-size:7.5px;font-weight:700;letter-spacing:.03em;line-height:1.2}
+.nt-b{font-size:13px;font-weight:900;letter-spacing:.02em;line-height:1.15}
+.nt-row{display:grid;grid-template-columns:minmax(0,1fr) auto}
+.nt-name{padding:2px 8px;font-size:13px;font-weight:800;color:#1f2c5c;border-right:2px solid #c8302a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:center}
+.nt-cls{padding:1px 8px;font-size:10px;font-weight:700;color:#1f2c5c;line-height:1.3;text-align:center}
+.sw{width:12px;height:12px;border:2px solid #2b2622;border-radius:2px;flex:none}
+.seg .opt{gap:6px}
+.iconbtn{min-width:44px;padding:0 10px}
+.hdr .btn{min-height:38px;padding:4px 10px;font-size:13px;box-shadow:2px 2px 0 #2b2622}
+.playgrid{display:grid;grid-template-columns:250px minmax(0,1fr) 290px;gap:20px;align-items:start}
+.playgrid .mapcol{grid-column:2;grid-row:1}
+.playgrid .guide{grid-column:1;grid-row:1}
+.playgrid .side{grid-column:3;grid-row:1}
+@media (max-width:1100px){.playgrid{grid-template-columns:minmax(0,1fr)}.playgrid .mapcol,.playgrid .guide,.playgrid .side{grid-column:1;grid-row:auto}.playgrid .mapcol{order:1}.playgrid .guide{order:2}.playgrid .side{order:3}}
+.keycap{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 4px;border:2px solid #2b2622;border-bottom-width:3px;border-radius:3px;background:#fff;font:700 11px/1 'Tiny5 Duo',monospace;color:#2b2622;box-sizing:border-box}
+.ico{background-image:url(../../assets/img/icons.png);background-size:1000% 100%;background-repeat:no-repeat;image-rendering:pixelated}
+.mk{position:absolute;transform:translate(-50%,-50%);background:none;border:0;padding:0;cursor:pointer;width:9.5%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}
+.mk .badge{width:100%;height:100%;box-sizing:border-box;border:2px solid #2b2622;border-radius:3px;background:#fffaf0;box-shadow:2px 2px 0 #2b2622;display:flex;align-items:center;justify-content:center}
+.mk.open .badge{background:#f2c94c}
+.mk .stem{display:none !important}
+.mk .ico{width:78%;aspect-ratio:1/1}
+.mk.locked .ico{filter:grayscale(1) contrast(.8) brightness(1.15);opacity:.75}
+.mk.locked .ico-custom{filter:grayscale(1) contrast(.8) brightness(1.15);opacity:.75}
+.mk.open .ico,.mk.open .ico-custom{filter:none;opacity:1}
+.mk.preview{aspect-ratio:1/1;transform:translate(-50%,-50%)}
+.mk.preview .badge{background:#fffaf0}
+.mk.preview .ico,.mk.preview .ico-custom{filter:none;opacity:1}
+.ico-custom{width:78%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}
+.ico-custom svg{width:100%;height:100%}
+.mk .tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);white-space:nowrap;background:#2b2622;color:#fffaf0;font:700 12px/1.2 'League Spartan',sans-serif;padding:5px 8px;border-radius:3px;opacity:0;pointer-events:none;transition:opacity .15s}
+.mk:hover .tip,.mk:focus-visible .tip,.mk.near .tip{opacity:1}
+.mk.near .badge{animation:bob .7s ease-in-out infinite alternate}
+.mk .chk{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#3f7a36;border:2px solid #fffaf0;display:flex;align-items:center;justify-content:center}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-14%)}}
+.stamp{border-radius:50%;border:4px double currentColor;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-sizing:border-box;background:rgba(255,250,240,.6)}
+.stamp-in{animation:stampIn .6s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes stampIn{0%{transform:scale(2.4) rotate(-22deg);opacity:0}55%{opacity:1}100%{transform:scale(1) rotate(-7deg);opacity:1}}
+.pop{animation:pop .25s ease-out both}
+@keyframes pop{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+.kb{animation:kb 18s ease-in-out infinite alternate}
+@keyframes kb{from{transform:scale(1) translate(0,0)}to{transform:scale(1.15) translate(-2%,-3%)}}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.dash{background-image:linear-gradient(#2b2622 50%,transparent 50%);background-size:3px 12px;background-repeat:repeat-y}
+.panel-wall{background-color:#cfe6dc;background-image:repeating-linear-gradient(90deg,rgba(43,38,34,.06) 0 2px,transparent 2px 64px)}
+.blink{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.bar{animation:bar 2.6s linear both}
+@keyframes bar{from{width:0}to{width:100%}}

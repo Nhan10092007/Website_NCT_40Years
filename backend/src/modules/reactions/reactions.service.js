@@ -213,7 +213,7 @@ export async function getMyLikedLocations(userId, { page = 1, limit = 20 } = {})
 
 /* ==================== MEMORY LIKES ==================== */
 
-export async function likeMemory(userId, memoryId) {
+export async function likeMemory(userId, memoryId, type = 'love') {
   const memRes = await query('SELECT id, status FROM memories WHERE id = $1', [memoryId]);
   if (!memRes.rows[0]) {
     throw new AppError('Bài viết kỷ niệm không tồn tại', 404);
@@ -221,17 +221,15 @@ export async function likeMemory(userId, memoryId) {
 
   try {
     const { rows } = await query(
-      `INSERT INTO memory_likes (user_id, memory_id)
-       VALUES ($1, $2)
-       RETURNING user_id, memory_id, created_at`,
-      [userId, memoryId]
+      `INSERT INTO memory_likes (user_id, memory_id, type)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, memory_id) DO UPDATE SET type = EXCLUDED.type
+       RETURNING user_id, memory_id, type, created_at`,
+      [userId, memoryId, type]
     );
 
     return rows[0];
   } catch (err) {
-    if (err.code === '23505') {
-      throw new AppError('Bạn đã thích bài viết này rồi', 409);
-    }
     if (err.code === '23503') {
       throw new AppError('Bài viết hoặc người dùng không tồn tại', 404);
     }
@@ -243,47 +241,78 @@ export async function unlikeMemory(userId, memoryId) {
   const { rows } = await query(
     `DELETE FROM memory_likes
      WHERE user_id = $1 AND memory_id = $2
-     RETURNING user_id, memory_id, created_at`,
+     RETURNING user_id, memory_id, type, created_at`,
     [userId, memoryId]
   );
 
   return rows[0] ?? null;
 }
 
-export async function toggleMemoryLike(userId, memoryId) {
+export async function toggleMemoryLike(userId, memoryId, type = 'love') {
   const memRes = await query('SELECT id FROM memories WHERE id = $1', [memoryId]);
   if (!memRes.rows[0]) {
     throw new AppError('Bài viết kỷ niệm không tồn tại', 404);
   }
 
   const checkRes = await query(
-    'SELECT 1 FROM memory_likes WHERE user_id = $1 AND memory_id = $2',
+    'SELECT type FROM memory_likes WHERE user_id = $1 AND memory_id = $2',
     [userId, memoryId]
   );
 
-  const hasLiked = checkRes.rows.length > 0;
+  const existing = checkRes.rows[0];
+  let liked = false;
+  let myReaction = null;
 
-  if (hasLiked) {
-    await query(
-      'DELETE FROM memory_likes WHERE user_id = $1 AND memory_id = $2',
-      [userId, memoryId]
-    );
+  if (existing) {
+    if (existing.type === type) {
+      await query(
+        'DELETE FROM memory_likes WHERE user_id = $1 AND memory_id = $2',
+        [userId, memoryId]
+      );
+      liked = false;
+      myReaction = null;
+    } else {
+      await query(
+        'UPDATE memory_likes SET type = $3, created_at = now() WHERE user_id = $1 AND memory_id = $2',
+        [userId, memoryId, type]
+      );
+      liked = true;
+      myReaction = type;
+    }
   } else {
     await query(
-      'INSERT INTO memory_likes (user_id, memory_id) VALUES ($1, $2)',
-      [userId, memoryId]
+      'INSERT INTO memory_likes (user_id, memory_id, type) VALUES ($1, $2, $3)',
+      [userId, memoryId, type]
     );
+    liked = true;
+    myReaction = type;
   }
 
   const countRes = await query(
-    'SELECT COUNT(*)::int AS count FROM memory_likes WHERE memory_id = $1',
+    `SELECT
+       COUNT(*)::int AS count,
+       COUNT(*) FILTER (WHERE type = 'love')::int AS love_count,
+       COUNT(*) FILTER (WHERE type = 'miss')::int AS miss_count,
+       COUNT(*) FILTER (WHERE type = 'laugh')::int AS laugh_count,
+       COUNT(*) FILTER (WHERE type = 'proud')::int AS proud_count
+     FROM memory_likes
+     WHERE memory_id = $1`,
     [memoryId]
   );
 
+  const stats = countRes.rows[0] || {};
+
   return {
     memoryId,
-    liked: !hasLiked,
-    count: countRes.rows[0]?.count ?? 0,
+    liked,
+    myReaction,
+    count: stats.count ?? 0,
+    counts: {
+      love: stats.love_count ?? 0,
+      miss: stats.miss_count ?? 0,
+      laugh: stats.laugh_count ?? 0,
+      proud: stats.proud_count ?? 0,
+    },
   };
 }
 
@@ -293,25 +322,40 @@ export async function getMemoryLikes(memoryId, currentUserId = null) {
     throw new AppError('Bài viết kỷ niệm không tồn tại', 404);
   }
 
-  const [countRes, hasLikedRes] = await Promise.all([
+  const [countRes, userReactionRes] = await Promise.all([
     query(
-      `SELECT COUNT(*)::int AS count
+      `SELECT
+         COUNT(*)::int AS count,
+         COUNT(*) FILTER (WHERE type = 'love')::int AS love_count,
+         COUNT(*) FILTER (WHERE type = 'miss')::int AS miss_count,
+         COUNT(*) FILTER (WHERE type = 'laugh')::int AS laugh_count,
+         COUNT(*) FILTER (WHERE type = 'proud')::int AS proud_count
        FROM memory_likes
        WHERE memory_id = $1`,
       [memoryId]
     ),
     currentUserId
       ? query(
-          `SELECT 1 FROM memory_likes WHERE memory_id = $1 AND user_id = $2`,
+          `SELECT type FROM memory_likes WHERE memory_id = $1 AND user_id = $2`,
           [memoryId, currentUserId]
         )
       : Promise.resolve({ rows: [] }),
   ]);
 
+  const stats = countRes.rows[0] || {};
+  const userReaction = userReactionRes.rows[0];
+
   return {
     memoryId,
-    count: countRes.rows[0]?.count ?? 0,
-    hasLiked: hasLikedRes.rows.length > 0,
+    count: stats.count ?? 0,
+    hasLiked: Boolean(userReaction),
+    myReaction: userReaction ? userReaction.type : null,
+    counts: {
+      love: stats.love_count ?? 0,
+      miss: stats.miss_count ?? 0,
+      laugh: stats.laugh_count ?? 0,
+      proud: stats.proud_count ?? 0,
+    },
   };
 }
 

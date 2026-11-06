@@ -12,10 +12,6 @@ export async function listMemories(
   const conditions = ["m.status = 'approved'"];
   const params = [];
 
-  if (currentUserId) {
-    params.push(currentUserId);
-  }
-
   if (locationId) {
     params.push(locationId);
     conditions.push(`m.location_id = $${params.length}`);
@@ -51,10 +47,18 @@ export async function listMemories(
   const countRes = await query(countSql, params);
   const total = countRes.rows[0]?.total ?? 0;
 
+  const selectParams = [...params];
+  let userReactionsSql = 'FALSE AS has_liked, NULL AS my_reaction';
+  if (currentUserId) {
+    selectParams.push(currentUserId);
+    const uIdx = selectParams.length;
+    userReactionsSql = `EXISTS(SELECT 1 FROM memory_likes WHERE memory_id = m.id AND user_id = $${uIdx}) AS has_liked, (SELECT type FROM memory_likes WHERE memory_id = m.id AND user_id = $${uIdx}) AS my_reaction`;
+  }
+
   const offset = (page - 1) * limit;
-  params.push(limit, offset);
-  const limitIdx = params.length - 1;
-  const offsetIdx = params.length;
+  selectParams.push(limit, offset);
+  const limitIdx = selectParams.length - 1;
+  const offsetIdx = selectParams.length;
 
   const sql = `
     SELECT
@@ -80,12 +84,12 @@ export async function listMemories(
         '[]'::json
       ) AS images,
       (SELECT COUNT(*)::int FROM memory_likes ml WHERE ml.memory_id = m.id) AS like_count,
+      (SELECT COUNT(*)::int FROM memory_likes ml WHERE ml.memory_id = m.id AND ml.type = 'love') AS love_count,
+      (SELECT COUNT(*)::int FROM memory_likes ml WHERE ml.memory_id = m.id AND ml.type = 'miss') AS miss_count,
+      (SELECT COUNT(*)::int FROM memory_likes ml WHERE ml.memory_id = m.id AND ml.type = 'laugh') AS laugh_count,
+      (SELECT COUNT(*)::int FROM memory_likes ml WHERE ml.memory_id = m.id AND ml.type = 'proud') AS proud_count,
       (SELECT COUNT(*)::int FROM comments c WHERE c.memory_id = m.id) AS comment_count,
-      ${
-        currentUserId
-          ? `EXISTS(SELECT 1 FROM memory_likes WHERE memory_id = m.id AND user_id = $1) AS has_liked`
-          : `FALSE AS has_liked`
-      }
+      ${userReactionsSql}
     FROM memories m
     JOIN users u ON u.id = m.user_id
     JOIN locations l ON l.id = m.location_id
@@ -94,7 +98,7 @@ export async function listMemories(
     LIMIT $${limitIdx} OFFSET $${offsetIdx}
   `;
 
-  const { rows } = await query(sql, params);
+  const { rows } = await query(sql, selectParams);
 
   return {
     items: rows,
@@ -140,11 +144,15 @@ export async function getMemoryById(memoryId, currentUserId = null) {
         '[]'::json
       ) AS images,
       (SELECT COUNT(*)::int FROM memory_likes ml WHERE ml.memory_id = m.id) AS like_count,
+      (SELECT COUNT(*)::int FROM memory_likes ml WHERE ml.memory_id = m.id AND ml.type = 'love') AS love_count,
+      (SELECT COUNT(*)::int FROM memory_likes ml WHERE ml.memory_id = m.id AND ml.type = 'miss') AS miss_count,
+      (SELECT COUNT(*)::int FROM memory_likes ml WHERE ml.memory_id = m.id AND ml.type = 'laugh') AS laugh_count,
+      (SELECT COUNT(*)::int FROM memory_likes ml WHERE ml.memory_id = m.id AND ml.type = 'proud') AS proud_count,
       (SELECT COUNT(*)::int FROM comments c WHERE c.memory_id = m.id) AS comment_count,
       ${
         currentUserId
-          ? `EXISTS(SELECT 1 FROM memory_likes WHERE memory_id = m.id AND user_id = $2) AS has_liked`
-          : `FALSE AS has_liked`
+          ? `EXISTS(SELECT 1 FROM memory_likes WHERE memory_id = m.id AND user_id = $2) AS has_liked, (SELECT type FROM memory_likes WHERE memory_id = m.id AND user_id = $2) AS my_reaction`
+          : `FALSE AS has_liked, NULL AS my_reaction`
       }
     FROM memories m
     JOIN users u ON u.id = m.user_id
@@ -167,7 +175,7 @@ export async function createMemory(userId, { locationId, content, year = null, i
 
   const { rows } = await query(
     `INSERT INTO memories (user_id, location_id, content, year, status)
-     VALUES ($1, $2, $3, $4, 'pending')
+     VALUES ($1, $2, $3, $4, 'approved')
      RETURNING id, user_id, location_id, content, year, status, created_at`,
     [userId, location.id, content, year || null]
   );

@@ -9,7 +9,7 @@ export const createMemorySchema = z.object({
     .max(3000, { message: 'Nội dung kỷ niệm không vượt quá 3000 ký tự' }),
   year: z.coerce.number().int().min(1986).max(2029).optional(),
   images: z
-    .array(z.string().trim().url({ message: 'Đường dẫn ảnh không hợp lệ' }))
+    .array(z.string().trim())
     .max(5, { message: 'Tối đa 5 ảnh đính kèm' })
     .optional()
     .default([]),
