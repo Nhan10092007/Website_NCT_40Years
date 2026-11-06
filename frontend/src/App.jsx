@@ -8,19 +8,27 @@ import EditProfilePage from './pages/EditProfilePage.jsx';
 import MemoriesPage from './pages/MemoriesPage.jsx';
 import AdminPage from './pages/AdminPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import Navbar from './components/layout/Navbar.jsx';
+import Footer from './components/layout/Footer.jsx';
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/tour/:slug" element={<TourPage />} />
-      <Route path="/memories" element={<MemoriesPage />} />
-      <Route path="/users/:id" element={<ProfilePage />} />
-      <Route path="/profile/edit" element={<EditProfilePage />} />
-      <Route path="/admin" element={<AdminPage />} />
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+    <>
+      <Navbar />
+      <main>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/tour/:slug" element={<TourPage />} />
+          <Route path="/memories" element={<MemoriesPage />} />
+          <Route path="/users/:id" element={<ProfilePage />} />
+          <Route path="/profile/edit" element={<EditProfilePage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </main>
+      <Footer />
+    </>
   );
 }

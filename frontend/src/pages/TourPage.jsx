@@ -5,6 +5,7 @@ import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin';
 import '@photo-sphere-viewer/core/index.css';
 import '@photo-sphere-viewer/markers-plugin/index.css';
 import client from '../api/client';
+import { assets } from '../assets/asset-registry';
 
 export default function TourPage() {
   const { slug } = useParams();
@@ -12,10 +13,10 @@ export default function TourPage() {
   const containerRef = useRef(null);
   const [location, setLocation] = useState(null);
   const [error, setError] = useState('');
+  const [mapLevel, setMapLevel] = useState('ground');
 
   // 1. Lấy dữ liệu địa điểm
   useEffect(() => {
-    setError('');
     client
       .get(`/locations/${slug}`)
       .then((res) => setLocation(res.data))
@@ -57,12 +58,17 @@ export default function TourPage() {
   if (error) return <p className="p-6">Không tải được địa điểm: {error}</p>;
   if (!location) return <p className="p-6">Đang tải...</p>;
 
+  const localVideo = assets.videos[slug];
   return (
-    <div>
+    <div className="tour-page">
       <div ref={containerRef} className="w-full h-[80vh]" />
-      <div className="px-6 py-4">
+      <div className="tour-info section-narrow">
+        {localVideo && <video className="tour-video" controls muted loop playsInline poster={assets.landscape} src={localVideo} />}
+        <div className="tour-copy">
         <h2 className="text-2xl font-bold">{location.name}</h2>
         <p className="text-gray-600">{location.description}</p>
+        </div>
+        <div className="campus-map"><p className="eyebrow">Bản đồ khuôn viên</p><div className="map-tabs"><button className={mapLevel === 'ground' ? 'active' : ''} type="button" onClick={() => setMapLevel('ground')}>Tầng trệt</button><button className={mapLevel === 'floor1' ? 'active' : ''} type="button" onClick={() => setMapLevel('floor1')}>Tầng 1</button><button className={mapLevel === 'canopy' ? 'active' : ''} type="button" onClick={() => setMapLevel('canopy')}>Toàn cảnh</button></div><img src={assets.maps[mapLevel]} alt={`Bản đồ ${mapLevel} khuôn viên trường`} /></div>
       </div>
     </div>
   );
