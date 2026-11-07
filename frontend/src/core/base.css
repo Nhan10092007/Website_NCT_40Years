@@ -11,7 +11,7 @@ body{margin:0;background:#fbf6e9}
 a{color:#2f6fb0}a:hover{color:#1f4f84}
 .nct{font-family:'League Spartan',system-ui,sans-serif;color:#2b2622;-webkit-font-smoothing:antialiased}
 .pix{font-family:'Tiny5 Duo',ui-monospace,monospace;letter-spacing:.02em}
-.nct h1,.nct h2,.nct h3,.lbl{font-family:'Tiny5 Duo','League Spartan',sans-serif;letter-spacing:.01em}
+.nct h1,.nct h2,.nct h3,.lbl{font-family:'Tiny5 Duo','League Spartan',sans-serif;letter-spacing:.01em;line-height:1.25}
 .pbox{background:#fffaf0;border:3px solid #2b2622;box-shadow:5px 5px 0 #2b2622;border-radius:4px}
 .btn{font:inherit;font-weight:800;font-size:15px;cursor:pointer;min-height:46px;padding:10px 18px;border:3px solid #2b2622;border-radius:4px;background:#f2c94c;color:#2b2622;box-shadow:3px 3px 0 #2b2622;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;box-sizing:border-box}
 .btn:hover{background:#f6d76e}

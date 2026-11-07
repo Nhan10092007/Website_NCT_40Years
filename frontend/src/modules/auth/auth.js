@@ -60,13 +60,13 @@
     el.innerHTML =
       '<div class="nct panel-wall" style="min-height:100vh;box-sizing:border-box;padding:0 16px 48px;display:flex;flex-direction:column;align-items:center">' +
       '<div style="width:100%;max-width:1120px;display:flex;flex-direction:column;gap:28px">' +
-      '<header style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;background:#cfe6dc;padding:18px 0 24px;border-bottom:2px solid rgba(43,38,34,.16);margin-bottom:12px">' +
-      '<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;min-width:0"><img src="assets/img/logo-truong.png" alt="Logo 40 năm Trường THPT Nguyễn Công Trứ – Thắp chí vươn xa 1986–2026" style="display:block;height:84px;width:auto;flex-shrink:0">' +
-      '<div style="display:flex;flex-direction:column;justify-content:center;gap:10px;padding-left:18px;border-left:3px solid #2b2622">' +
-      '<div style="font-size:12px;font-weight:800;letter-spacing:.14em;color:#2f6b5c;text-transform:uppercase;line-height:1;margin:0">Kỷ niệm 40 năm thành lập</div>' +
-      '<h1 style="margin:6px 0 0;font-family:\'League Spartan\',sans-serif;font-size:clamp(24px,3.2vw,38px);line-height:1.15;font-weight:900;letter-spacing:-0.01em;color:#2b2622">CHUYẾN TÀU TIẾP NỐI</h1>' +
+      '<header style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;background:#cfe6dc;padding:14px 0 20px;border-bottom:2px solid rgba(43,38,34,.16);margin-bottom:12px">' +
+      '<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;min-width:0"><img src="assets/img/logo-truong.png" alt="Logo 40 năm Trường THPT Nguyễn Công Trứ – Thắp chí vươn xa 1986–2026" style="display:block;height:80px;width:auto;flex-shrink:0">' +
+      '<div style="display:flex;flex-direction:column;justify-content:center;gap:8px;padding-left:18px;border-left:3px solid #2b2622">' +
+      '<div style="font-size:12px;font-weight:800;letter-spacing:.14em;color:#2f6b5c;text-transform:uppercase;line-height:1.2;margin:0">Kỷ niệm 40 năm thành lập</div>' +
+      '<h1 style="margin:2px 0 4px;padding-top:4px;font-size:clamp(24px,3.2vw,38px);line-height:1.25;font-weight:900;color:#2b2622">Chuyến tàu tiếp nối</h1>' +
       '<div style="display:flex;align-items:center;gap:10px;line-height:1;margin:0"><span class="pix" style="background:#f2c94c;border:2px solid #2b2622;box-shadow:2px 2px 0 #2b2622;font-size:18px;font-weight:700;padding:2px 8px;line-height:1.2">40</span><span style="font-size:17px;font-weight:900">năm NCT</span></div></div></div>' +
-      '<div style="font-family:\'League Spartan\',sans-serif;font-size:16px;font-weight:800;letter-spacing:.06em;color:#2f6b5c">1986 — 2026</div></header>' +
+      '<div class="pix" style="font-size:14px;font-weight:700;color:#2f6b5c">1986 — 2026</div></header>' +
       '<div style="display:flex;flex-wrap:wrap;gap:28px;align-items:stretch">' +
       '<div style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:14px">' +
       '<div class="train" data-train style="background:#2f6b5c;border:3px solid #2b2622;border-radius:28px;padding:16px;box-shadow:5px 5px 0 #2b2622">' +

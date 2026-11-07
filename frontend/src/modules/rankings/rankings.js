@@ -20,7 +20,7 @@
           return;
         }
         var top = rows.slice(0, 3), rest = rows.slice(3);
-        var pod = function (r, cls, n) { return r ? '<a class="pod ' + cls + '" href="#/u/' + r.user.id + '" style="color:#2b2622;text-decoration:none"><div class="rank-no">' + n + '</div><span class="rank-av ' + NCT.ui.avClass(r.user) + '" style="display:block"></span><b>' + esc(r.user.name) + '</b><div class="muted" style="font-size:12px">' + esc(NCT.ui.years(r.user)) + '</div><div class="rank-score">' + r.score + ' ' + unit + '</div></a>' : '<div></div>'; };
+        var pod = function (r, cls, n) { return r ? '<a class="pod ' + cls + '" href="#/u/' + r.user.id + '" style="color:#2b2622;text-decoration:none"><div class="rank-no">' + n + '</div><span class="rank-av ' + NCT.ui.avClass(r.user) + '" style="display:block"></span><b class="pod-name">' + esc(r.user.name) + '</b><div class="pod-info muted">' + esc(NCT.ui.years(r.user)) + '</div><div class="rank-score">' + r.score + ' ' + unit + '</div></a>' : '<div></div>'; };
         body.innerHTML = '<div class="podium">' + pod(top[1], 'p2', 2) + pod(top[0], 'p1', 1) + pod(top[2], 'p3', 3) + '</div>' +
           '<div class="tbl-wrap">' + rest.map(function (r, i) {
             return '<a class="rank-row" href="#/u/' + r.user.id + '" style="color:#2b2622;text-decoration:none"><span class="rank-no">' + (i + 4) + '</span><span class="rank-av ' + NCT.ui.avClass(r.user) + '"></span>' +
