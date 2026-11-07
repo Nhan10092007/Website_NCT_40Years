@@ -7,7 +7,7 @@
   var TABS = [{ id: 'stamps', label: 'Dấu mộc', unit: 'dấu' }, { id: 'memories', label: 'Kỷ niệm', unit: 'kỷ niệm' }, { id: 'reactions', label: 'Cảm xúc nhận được', unit: 'lượt' }, { id: 'cohort', label: 'Theo niên khoá', unit: '' }];
   NCT.modules.rankings = { render: function (el, ctx) {
     var tab = ctx.params.type || 'stamps';
-    el.innerHTML = '<div class="page"><div class="page-head"><div><h1>Bảng xếp hạng</h1><p>Ai đã đi khắp trường và để lại nhiều kỷ niệm nhất?</p></div>' +
+    el.innerHTML = '<div class="page"><div class="page-head"><div><h1 style="font-family:\'League Spartan\',sans-serif;font-weight:900;letter-spacing:-0.01em">BẢNG XẾP HẠNG</h1><p>Ai đã đi khắp trường và để lại nhiều kỷ niệm nhất?</p></div>' +
       '<div class="chips" role="tablist">' + TABS.map(function (t) { return '<button type="button" class="chip" role="tab" data-t="' + t.id + '">' + t.label + '</button>'; }).join('') + '</div></div><div data-body></div></div>';
     var body = el.querySelector('[data-body]');
     function load() {

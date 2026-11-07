@@ -164,6 +164,7 @@ window.NCT = window.NCT || {};
 
   function mapUser(u) {
     if (!u) return null;
+    if (u.user && typeof u.user === 'object') u = u.user;
     var sy = 2023, ey = 2026;
     if (u.cohort) {
       var parts = String(u.cohort).split(/[-–]/);
@@ -303,8 +304,11 @@ window.NCT = window.NCT || {};
         user.gender = data.gender || 'm';
         user.stripe = data.stripe || 'y';
         saveSession(user, res.token);
-        NCT.api.myCheckins();
-        return { user: user, token: res.token };
+        return NCT.api.myCheckins().then(function () {
+          return { user: user, token: res.token };
+        }).catch(function () {
+          return { user: user, token: res.token };
+        });
       });
     },
 
@@ -319,8 +323,11 @@ window.NCT = window.NCT || {};
       }).then(function (res) {
         var user = mapUser(res.user);
         saveSession(user, res.token);
-        NCT.api.myCheckins();
-        return { user: user, token: res.token };
+        return NCT.api.myCheckins().then(function () {
+          return { user: user, token: res.token };
+        }).catch(function () {
+          return { user: user, token: res.token };
+        });
       });
     },
 
@@ -336,6 +343,9 @@ window.NCT = window.NCT || {};
       return request('/auth/me').then(function (res) {
         var user = mapUser(res.user);
         saveSession(user, getToken());
+        if (!_cachedCheckins || _cachedCheckins.length === 0) {
+          NCT.api.myCheckins();
+        }
         return user;
       }).catch(function () {
         return _cachedUser;
@@ -367,7 +377,8 @@ window.NCT = window.NCT || {};
         method: 'PATCH',
         body: JSON.stringify(payload)
       }).then(function (res) {
-        var updated = mapUser(res);
+        var rawUser = (res && res.user) ? res.user : res;
+        var updated = mapUser(rawUser);
         if (patch.gender) updated.gender = patch.gender;
         if (patch.stripe) updated.stripe = patch.stripe;
         saveSession(updated, getToken());
@@ -425,7 +436,7 @@ window.NCT = window.NCT || {};
     // GET /checkins?userId=me
     myCheckins: function () {
       if (!getToken()) return Promise.resolve(_cachedCheckins);
-      return request('/checkins/me?limit=100').then(function (res) {
+      return request('/checkins/me?limit=50').then(function (res) {
         var items = res.items || [];
         _cachedCheckins = items.map(function (c) {
           return {

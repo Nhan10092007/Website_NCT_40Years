@@ -54,7 +54,6 @@ window.NCT = window.NCT || {};
       (NCT.sound.pref.sound ? '<path d="M14 7 Q16 10 14 13 M16 5 Q19.5 10 16 15" stroke="#2b2622" stroke-width="2" fill="none"/>' : '<path d="M14 7 L19 13 M19 7 L14 13" stroke="#d9433b" stroke-width="2"/>') + '</svg></button>' +
       '<button type="button" class="btn ghost sm" data-music aria-pressed="' + NCT.sound.pref.music + '">' + (NCT.sound.pref.music ? 'Nhạc: Bật' : 'Nhạc: Tắt') + '</button>' +
       '<button type="button" class="btn ghost sm" data-logout>Đăng xuất</button>' +
-      '<span class="mock-badge" style="background:#2f6b5c;color:#fffaf0" title="Đã kết nối Backend API Express / PostgreSQL">API Online</span>' +
       '</div></div></header><main id="view" class="wrap"></main>';
   }
   function bindShell(root) {

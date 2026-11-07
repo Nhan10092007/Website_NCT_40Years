@@ -82,7 +82,7 @@
   /* ---- page #/memories ---- */
   NCT.modules.memories = { render: function (el, ctx) {
     var f = { loc: ctx.params.loc || '', sort: ctx.params.sort || 'new' };
-    el.innerHTML = '<div class="page"><div class="page-head"><div><h1>Tường kỷ niệm</h1><p>Những câu chuyện các thế hệ NCT-er để lại ở từng góc trường.</p></div>' +
+    el.innerHTML = '<div class="page"><div class="page-head"><div><h1 style="font-family:\'League Spartan\',sans-serif;font-weight:900;letter-spacing:-0.01em">TƯỜNG KỶ NIỆM</h1><p>Những câu chuyện các thế hệ NCT-er để lại ở từng góc trường.</p></div>' +
       '<div class="chips" role="group" aria-label="Sắp xếp"><button type="button" class="chip" data-sort="new">Mới nhất</button><button type="button" class="chip" data-sort="top">Nhiều cảm xúc</button></div></div>' +
       '<div class="chips" role="group" aria-label="Lọc theo địa điểm" style="margin-bottom:16px"><button type="button" class="chip" data-loc="">Tất cả</button>' +
       NCT.C.LOCS.map(function (l) { return '<button type="button" class="chip" data-loc="' + l.id + '">' + NCT.ui.ico(l.icon, 18) + esc(l.name) + '</button>'; }).join('') + '</div>' +
